@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#0a0909">
   <meta name="color-scheme" content="dark">
   <title>AstraLabs</title>
   <meta name="description" content="AstraLabs - An experiment by Emily Astranova.">
@@ -14,428 +14,472 @@
   <meta property="og:url" content="https://astralabs.dev/">
   <meta property="og:title" content="AstraLabs">
   <meta property="og:description" content="AstraLabs - An experiment by Emily Astranova.">
-  <meta property="og:image" content="https://astralabs.dev/images/logo.png">
+  <meta property="og:image" content="https://astralabs.dev/images/og.png">
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://astralabs.dev/">
   <meta property="twitter:title" content="AstraLabs">
   <meta property="twitter:description" content="AstraLabs - An experiment by Emily Astranova.">
-  <meta property="twitter:image" content="https://astralabs.dev/images/logo.png">
+  <meta property="twitter:image" content="https://astralabs.dev/images/og.png">
   <link rel="apple-touch-icon" sizes="180x180" href="favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="favicon/favicon.svg">
   <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
   <link rel="manifest" href="favicon/site.webmanifest">
   <link rel="shortcut icon" href="favicon/favicon.ico">
+  <link rel="preload" href="fonts/MartianMono-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
-    :root {
-      --glitch-duration: 2.2s;
+    @font-face {
+      font-family: 'Martian Mono';
+      src: url('fonts/MartianMono-Variable.woff2') format('woff2');
+      font-weight: 100 800;
+      font-stretch: 75% 112.5%;
+      font-display: swap;
     }
 
-    /* Reset & Centering */
-    * {
-      box-sizing: border-box;
+    :root {
+      --void: #0a0909;
+      --bone: #ede6e1;
+      --acid: #b6ff2e;
+      --ash: #8e8380;
+      --edge: 24px;
+      --snap: cubic-bezier(.3, 1.35, .5, 1);
+      color-scheme: dark;
     }
-    
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
     body {
       margin: 0;
-      padding: 0;
-      background-color: #000;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M 40 0 L 0 0 0 40' fill='none' stroke='rgba(128, 128, 128, 0.15)' stroke-dasharray='2,2' stroke-width='1'/%3E%3C/svg%3E");
-      height: 100vh;
-      height: 100dvh;
-      width: 100vw;
-      width: 100dvw;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      background: var(--void);
       overflow: hidden;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       user-select: none;
       -webkit-user-select: none;
     }
 
-    /* Container for the logo & effects */
-    .glitch-container {
-      position: relative;
-      width: 640px;
-      max-width: 85%;
-      cursor: pointer;
-      transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    /* Tactile active press effect */
-    .glitch-container:active {
-      transform: scale(0.96);
-    }
-
-    /* Base logo style */
-    .glitch-base {
-      display: block;
-      width: 100%;
-      height: auto;
-      transition: opacity 0.15s ease;
-    }
-
-    /* Glitch layers */
-    .glitch-layer {
-      position: absolute;
-      top: 0;
-      left: 0;
+    /* Dot field: ignition on load, then the Sea idle field */
+    #field {
+      position: fixed;
+      inset: 0;
       width: 100%;
       height: 100%;
-      display: none;
-      pointer-events: none;
-    }
-
-    /* RGB Split Filter applications using SVG filters */
-    .glitch-red {
-      filter: url(#red-channel);
-      mix-blend-mode: screen;
-    }
-
-    .glitch-green {
-      filter: url(#green-channel);
-      mix-blend-mode: screen;
-    }
-
-    .glitch-cyan {
-      filter: url(#cyan-channel);
-      mix-blend-mode: screen;
-    }
-
-    /* Subtle CRT Aperture Grille & Scanline texture on the logo container */
-    .glitch-container::after {
-      content: " ";
       display: block;
+    }
+
+    main {
+      position: relative;
+      height: 100vh;
+      height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    /* The lockup and the glitch canvas sit on top of each other */
+    .logo {
+      position: relative;
+      width: 600px;
+      max-width: 82vw;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .logo svg { display: block; width: 100%; height: auto; overflow: visible; }
+    .logo canvas {
       position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      right: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), 
-                  linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.08));
-      background-size: 100% 4px, 6px 100%;
+      left: -10%;
+      top: -60%;
+      width: 120%;
+      height: 220%;
       pointer-events: none;
+      visibility: hidden;
+    }
+    .logo.is-glitching svg { visibility: hidden; }
+    .logo.is-glitching canvas { visibility: visible; }
+    .logo:focus-visible { outline: 2px solid var(--acid); outline-offset: 12px; }
+
+    /* Mark trace outline, used only during boot */
+    .trace path {
+      fill: none;
+      stroke: var(--bone);
+      stroke-width: 1.5px;
+      vector-effect: non-scaling-stroke;
       opacity: 0;
-      transition: opacity 0.2s ease;
-      z-index: 10;
     }
 
-    /* Glitch states triggered by JS class addition */
-    .is-glitching .glitch-layer {
-      display: block;
+    /* Before the script runs the lockup shows complete, so the page never sits empty */
+    .booting .fill,
+    .booting .wm { visibility: hidden; }
+
+    /* Registration marks: acid plus signs in two corners */
+    .reg {
+      position: fixed;
+      width: 18px;
+      height: 18px;
+      pointer-events: none;
+    }
+    .reg::before, .reg::after { content: ""; position: absolute; background: var(--acid); }
+    .reg::before { left: 50%; top: 0; width: 1px; height: 100%; }
+    .reg::after { top: 50%; left: 0; height: 1px; width: 100%; }
+    .reg-tl { top: var(--edge); left: var(--edge); }
+    .reg-br { bottom: var(--edge); right: var(--edge); }
+
+    /* Corner labels in the mono label style */
+    .hud {
+      position: fixed;
+      margin: 0;
+      font-family: 'Martian Mono', ui-monospace, Menlo, monospace;
+      font-size: 10.5px;
+      line-height: 18px;
+      font-weight: 500;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      font-variation-settings: "wdth" 85;
+      font-variant-numeric: tabular-nums;
+      color: var(--ash);
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .hud b { font-weight: 500; color: var(--acid); }
+    /* Typing cursor: zero width, so showing or hiding it never moves the text */
+    .hud .cur { position: relative; display: inline-block; width: 0; height: 1em; }
+    .hud .cur::after {
+      content: "";
+      position: absolute;
+      left: .07em;
+      top: -.05em;
+      width: .62em;
+      height: 1.1em;
+      background: var(--acid);
+    }
+    /* The untyped part is laid out but invisible, so the right-aligned line never shifts */
+    .hud .rest { visibility: hidden; }
+    .hud-tr { top: var(--edge); right: var(--edge); }
+    .hud-bl { bottom: var(--edge); left: var(--edge); color: var(--bone); }
+
+    .booting-hud .reg,
+    .booting-hud .hud { visibility: hidden; }
+
+    @media (max-width: 480px) {
+      :root { --edge: 16px; }
     }
 
-    .is-glitching::after {
-      opacity: 0.95;
-    }
-
-    .is-glitching .glitch-base {
-      opacity: 1;
-    }
-
-    .is-glitching .glitch-red {
-      animation: glitch-anim-red var(--glitch-duration) linear infinite;
-    }
-
-    .is-glitching .glitch-green {
-      animation: glitch-anim-green var(--glitch-duration) linear infinite;
-    }
-
-    .is-glitching .glitch-cyan {
-      animation: glitch-anim-cyan var(--glitch-duration) linear infinite;
-    }
-
-    /* Animation Keyframes */
-    @keyframes glow-shake {
-      0%, 100% { transform: scale(1.3) translate(0, 0); }
-      33% { transform: scale(1.35) translate(-4px, 2px); }
-      66% { transform: scale(1.25) translate(4px, -2px); }
-    }
-
-    @keyframes glitch-base-shake {
-      0%, 100% { transform: translate(0, 0); }
-      20% { transform: translate(-1px, 0); }
-      40% { transform: translate(1.5px, 0); }
-      60% { transform: translate(-0.5px, 0); }
-      80% { transform: translate(1px, 0); }
-    }
-
-    @keyframes glitch-anim-red {
-      0%, 4.9%, 7.1%, 14.9%, 17.1%, 25.9%, 28.1%, 37.9%, 40.1%, 47.9%, 50.1%, 57.9%, 60.1%, 69.9%, 72.1%, 79.9%, 82.1%, 89.9%, 92.1%, 100% {
-        transform: none;
-        clip-path: inset(0% 0% 0% 0%);
-      }
-      5.0%, 7.0% {
-        transform: translateX(var(--glitch-red-1, -8px));
-        clip-path: inset(var(--clip-top-1, 25%) var(--clip-right-1, 0%) var(--clip-bottom-1, 72%) var(--clip-left-1, 0%));
-      }
-      15.0%, 17.0% {
-        transform: translateX(var(--glitch-red-2, 12px));
-        clip-path: inset(var(--clip-top-2, 50%) var(--clip-right-2, 0%) var(--clip-bottom-2, 47%) var(--clip-left-2, 0%));
-      }
-      26.0%, 28.0% {
-        transform: translateX(var(--glitch-red-3, -12px));
-        clip-path: inset(var(--clip-top-3, 35%) var(--clip-right-3, 50%) var(--clip-bottom-3, 50%) var(--clip-left-3, 10%));
-      }
-      38.0%, 40.0% {
-        transform: translateX(var(--glitch-red-4, 10px));
-        clip-path: inset(var(--clip-top-4, 82%) var(--clip-right-4, 0%) var(--clip-bottom-4, 14%) var(--clip-left-4, 0%));
-      }
-      48.0%, 50.0% {
-        transform: translateX(var(--glitch-red-5, -11px));
-        clip-path: inset(var(--clip-top-5, 8%) var(--clip-right-5, 0%) var(--clip-bottom-5, 88%) var(--clip-left-5, 0%));
-      }
-      58.0%, 60.0% {
-        transform: translateX(var(--glitch-red-6, 13px));
-        clip-path: inset(var(--clip-top-6, 15%) var(--clip-right-6, 15%) var(--clip-bottom-6, 70%) var(--clip-left-6, 65%));
-      }
-      70.0%, 72.0% {
-        transform: translateX(var(--glitch-red-7, -14px));
-        clip-path: inset(var(--clip-top-7, 65%) var(--clip-right-7, 0%) var(--clip-bottom-7, 31%) var(--clip-left-7, 0%));
-      }
-      80.0%, 82.0% {
-        transform: translateX(var(--glitch-red-8, 11px));
-        clip-path: inset(var(--clip-top-8, 38%) var(--clip-right-8, 0%) var(--clip-bottom-8, 59%) var(--clip-left-8, 0%));
-      }
-      90.0%, 92.0% {
-        transform: translateX(var(--glitch-red-9, -15px));
-        clip-path: inset(var(--clip-top-9, 75%) var(--clip-right-9, 75%) var(--clip-bottom-9, 10%) var(--clip-left-9, 5%));
-      }
-    }
-
-    @keyframes glitch-anim-green {
-      0%, 4.9%, 7.1%, 14.9%, 17.1%, 25.9%, 28.1%, 37.9%, 40.1%, 47.9%, 50.1%, 57.9%, 60.1%, 69.9%, 72.1%, 79.9%, 82.1%, 89.9%, 92.1%, 100% {
-        transform: none;
-        clip-path: inset(0% 0% 0% 0%);
-      }
-      5.0%, 7.0% {
-        transform: translateX(var(--glitch-green-1, -5px));
-        clip-path: inset(var(--clip-top-1, 25%) var(--clip-right-1, 0%) var(--clip-bottom-1, 72%) var(--clip-left-1, 0%));
-      }
-      15.0%, 17.0% {
-        transform: translateX(var(--glitch-green-2, 6px));
-        clip-path: inset(var(--clip-top-2, 50%) var(--clip-right-2, 0%) var(--clip-bottom-2, 47%) var(--clip-left-2, 0%));
-      }
-      26.0%, 28.0% {
-        transform: translateX(var(--glitch-green-3, -9px));
-        clip-path: inset(var(--clip-top-3, 35%) var(--clip-right-3, 50%) var(--clip-bottom-3, 50%) var(--clip-left-3, 10%));
-      }
-      38.0%, 40.0% {
-        transform: translateX(var(--glitch-green-4, 14px));
-        clip-path: inset(var(--clip-top-4, 82%) var(--clip-right-4, 0%) var(--clip-bottom-4, 14%) var(--clip-left-4, 0%));
-      }
-      48.0%, 50.0% {
-        transform: translateX(var(--glitch-green-5, -7px));
-        clip-path: inset(var(--clip-top-5, 8%) var(--clip-right-5, 0%) var(--clip-bottom-5, 88%) var(--clip-left-5, 0%));
-      }
-      58.0%, 60.0% {
-        transform: translateX(var(--glitch-green-6, 9px));
-        clip-path: inset(var(--clip-top-6, 15%) var(--clip-right-6, 15%) var(--clip-bottom-6, 70%) var(--clip-left-6, 65%));
-      }
-      70.0%, 72.0% {
-        transform: translateX(var(--glitch-green-7, -10px));
-        clip-path: inset(var(--clip-top-7, 65%) var(--clip-right-7, 0%) var(--clip-bottom-7, 31%) var(--clip-left-7, 0%));
-      }
-      80.0%, 82.0% {
-        transform: translateX(var(--glitch-green-8, 7px));
-        clip-path: inset(var(--clip-top-8, 38%) var(--clip-right-8, 0%) var(--clip-bottom-8, 59%) var(--clip-left-8, 0%));
-      }
-      90.0%, 92.0% {
-        transform: translateX(var(--glitch-green-9, -11px));
-        clip-path: inset(var(--clip-top-9, 75%) var(--clip-right-9, 75%) var(--clip-bottom-9, 10%) var(--clip-left-9, 5%));
-      }
-    }
-
-    @keyframes glitch-anim-cyan {
-      0%, 4.9%, 7.1%, 14.9%, 17.1%, 25.9%, 28.1%, 37.9%, 40.1%, 47.9%, 50.1%, 57.9%, 60.1%, 69.9%, 72.1%, 79.9%, 82.1%, 89.9%, 92.1%, 100% {
-        transform: none;
-        clip-path: inset(0% 0% 0% 0%);
-      }
-      5.0%, 7.0% {
-        transform: translateX(var(--glitch-cyan-1, -2px));
-        clip-path: inset(var(--clip-top-1, 25%) var(--clip-right-1, 0%) var(--clip-bottom-1, 72%) var(--clip-left-1, 0%));
-      }
-      15.0%, 17.0% {
-        transform: translateX(var(--glitch-cyan-2, 9px));
-        clip-path: inset(var(--clip-top-2, 50%) var(--clip-right-2, 0%) var(--clip-bottom-2, 47%) var(--clip-left-2, 0%));
-      }
-      26.0%, 28.0% {
-        transform: translateX(var(--glitch-cyan-3, -6px));
-        clip-path: inset(var(--clip-top-3, 35%) var(--clip-right-3, 50%) var(--clip-bottom-3, 50%) var(--clip-left-3, 10%));
-      }
-      38.0%, 40.0% {
-        transform: translateX(var(--glitch-cyan-4, 7px));
-        clip-path: inset(var(--clip-top-4, 82%) var(--clip-right-4, 0%) var(--clip-bottom-4, 14%) var(--clip-left-4, 0%));
-      }
-      48.0%, 50.0% {
-        transform: translateX(var(--glitch-cyan-5, -4px));
-        clip-path: inset(var(--clip-top-5, 8%) var(--clip-right-5, 0%) var(--clip-bottom-5, 88%) var(--clip-left-5, 0%));
-      }
-      58.0%, 60.0% {
-        transform: translateX(var(--glitch-cyan-6, 16px));
-        clip-path: inset(var(--clip-top-6, 15%) var(--clip-right-6, 15%) var(--clip-bottom-6, 70%) var(--clip-left-6, 65%));
-      }
-      70.0%, 72.0% {
-        transform: translateX(var(--glitch-cyan-7, -6px));
-        clip-path: inset(var(--clip-top-7, 65%) var(--clip-right-7, 0%) var(--clip-bottom-7, 31%) var(--clip-left-7, 0%));
-      }
-      80.0%, 82.0% {
-        transform: translateX(var(--glitch-cyan-8, 14px));
-        clip-path: inset(var(--clip-top-8, 38%) var(--clip-right-8, 0%) var(--clip-bottom-8, 59%) var(--clip-left-8, 0%));
-      }
-      90.0%, 92.0% {
-        transform: translateX(var(--glitch-cyan-9, -7px));
-        clip-path: inset(var(--clip-top-9, 75%) var(--clip-right-9, 75%) var(--clip-bottom-9, 10%) var(--clip-left-9, 5%));
-      }
+    .sr-only {
+      position: absolute;
+      width: 1px; height: 1px;
+      margin: -1px; padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
     }
   </style>
 </head>
 <body>
+  <canvas id="field" aria-hidden="true"></canvas>
 
-  <!-- Hidden SVG filters for perfect RGB channel splitting -->
-  <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" aria-hidden="true" version="1.1" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <!-- Isolates the red color channel -->
-      <filter id="red-channel">
-        <feColorMatrix type="matrix" values="
-          1 0 0 0 0
-          0 0 0 0 0
-          0 0 0 0 0
-          0 0 0 1 0" />
-        <feComposite operator="in" in2="SourceGraphic" />
-      </filter>
-      <!-- Isolates the green color channel -->
-      <filter id="green-channel">
-        <feColorMatrix type="matrix" values="
-          0 0 0 0 0
-          0 1 0 0 0
-          0 0 0 0 0
-          0 0 0 1 0" />
-        <feComposite operator="in" in2="SourceGraphic" />
-      </filter>
-      <!-- Isolates the cyan color channel -->
-      <filter id="cyan-channel">
-        <feColorMatrix type="matrix" values="
-          0 0 0 0 0
-          0 1 0 0 0
-          0 0 1 0 0
-          0 0 0 1 0" />
-        <feComposite operator="in" in2="SourceGraphic" />
-      </filter>
-    </defs>
-  </svg>
+  <span class="reg reg-tl" aria-hidden="true"></span>
+  <span class="reg reg-br" aria-hidden="true"></span>
+  <p class="hud hud-tr" id="byline" aria-label="A brand by Emily Astranova">A brand by <b>//</b> Emily Astranova</p>
+  <time class="hud hud-bl" id="clock" aria-hidden="true">00:00:00</time>
 
-  <!-- Interactive Glitch Logo Container -->
-  <div class="glitch-container" id="logo-container">
-    <!-- Base Logo (displayed clean normally) -->
-    <img class="glitch-base" src="images/logo.png" alt="AstraLabs Logo">
-    
-    <!-- Duplicated Layers for RGB chromatic aberration split (rendered dynamically on glitch) -->
-    <img class="glitch-layer glitch-red" src="images/logo.png" alt="">
-    <img class="glitch-layer glitch-green" src="images/logo.png" alt="">
-    <img class="glitch-layer glitch-cyan" src="images/logo.png" alt="">
-  </div>
+  <main>
+    <h1 class="sr-only">AstraLabs</h1>
+    <div class="logo" id="logo" role="img" aria-label="AstraLabs" tabindex="0">
+      <svg viewBox="0 0 904.68 105" aria-hidden="true">
+        <g transform="scale(0.20207)">
+          <g class="fill" fill="#ffffff">
+            <path id="mk-o" d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/>
+            <path id="mk-i" d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/>
+          </g>
+          <g class="trace">
+            <path d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/>
+            <path d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/>
+          </g>
+        </g>
+        <g class="wm">
+          <g id="wm-a" fill="#ffffff"><path d="M236.7592696453283 74.9 249.69528673517203 30.1H258.7896060711095L271.72562316095326 74.9H265.8344737468908L254.34324571954704 34.4903671875H253.82804845392204L242.30322179376577 74.9ZM243.96086827814077 59.10796240234375V53.84401025390625H264.56882726251575V59.10796240234375Z"/><path d="M306.18802111017203 63.476000000000006Q307.0392149578283 66.8808232421875 309.78882213556267 68.6840341796875Q312.53842931329706 70.4872451171875 316.89525255548455 70.4872451171875Q321.44246349298453 70.4872451171875 324.0576693035314 68.35363623046875Q326.6728751140783 66.22002734375 326.6728751140783 62.535210937500004Q326.6728751140783 59.5559931640625 324.83606896173455 57.831185302734376Q322.9992628093908 56.10637744140625 319.2808477703283 55.680775390625L313.5688477703283 55.008775390625004Q307.46485802423456 54.25837744140625 304.35686315118767 51.13918017578125Q301.2488682781408 48.01998291015625 301.2488682781408 42.5767890625Q301.2488682781408 38.533591796875 303.20886486017207 35.55439453125Q305.1688614422033 32.575197265625 308.7192559734533 30.912Q312.2696505047033 29.248802734374998 317.00724571954703 29.248802734374998Q321.7336436687658 29.248802734374998 325.2840382000158 30.844801025390623Q328.8344327312658 32.44079931640625 330.8952286297033 35.425598632812495Q332.9560245281408 38.41039794921875 333.2360245281408 42.644H327.84887169610954Q327.0536778484533 38.72397607421875 324.24807237970333 36.61836547851563Q321.4424669109533 34.5127548828125 317.00724571954703 34.5127548828125Q312.2248340984533 34.5127548828125 309.4808272625158 36.674363769531254Q306.7368204265783 38.83597265625 306.7368204265783 42.5767890625Q306.7368204265783 45.5560068359375 308.59602623712516 47.2584150390625Q310.45523204767204 48.9608232421875 314.1288477703283 49.431224609375L319.8408477703283 50.103224609375005Q325.9896368328283 50.8088232421875 329.07523204767205 53.950420166015626Q332.1608272625158 57.09201708984375 332.1608272625158 62.535210937500004Q332.1608272625158 66.52240820312501 330.2624310222814 69.49600512695314Q328.36403478204704 72.46960205078126 324.93684093439083 74.11039965820314Q321.50964708673456 75.75119726562501 316.89525255548455 75.75119726562501Q312.15765392267207 75.75119726562501 308.6184583660314 74.29519897460938Q305.0792628093908 72.83920068359376 303.04086656915644 70.07840136718751Q301.0024703289221 67.31760205078126 300.7112696453283 63.476000000000006Z"/><path d="M375.7736710125158 74.9V35.3639521484375H361.2584669109533V30.1H395.86642589532835V35.3639521484375H381.35122179376583V74.9Z"/><path d="M426.95766417657836 74.9V30.1H443.66803136407833Q447.9912320476721 30.1 451.1776317058752 31.651198974609375Q454.36403136407836 33.20239794921875 456.1168306804846 36.08639624023438Q457.86962999689086 38.97039453125 457.86962999689086 42.9239931640625Q457.86962999689086 46.68719384765625 456.09443102228147 49.4759931640625Q454.31923204767213 52.264792480468756 451.132832389469 53.838391113281254Q447.9464327312659 55.41198974609375 443.66803136407833 55.41198974609375H432.5352149578284V74.9ZM452.3928785320471 74.9 439.0648648601721 54.403996582031255H445.2472115398596L458.87762316095336 74.9ZM432.5352149578284 50.5736328125H443.8248340984534Q447.6664566570471 50.5736328125 449.97926793634394 48.479222900390624Q452.29207921564085 46.384812988281254 452.29207921564085 42.96879248046875Q452.29207921564085 39.50797265625 449.97926793634394 37.43596240234375Q447.6664566570471 35.3639521484375 443.8248340984534 35.3639521484375H432.5352149578284Z"/><path d="M485.3992696453284 74.9 498.33528673517213 30.1H507.4296060711096L520.3656231609534 74.9H514.4744737468909L502.98324571954714 34.4903671875H502.4680484539221L490.9432217937659 74.9ZM492.60086827814087 59.10796240234375V53.84401025390625H513.2088272625159V59.10796240234375Z"/></g>
+          <g id="wm-b" fill="#ffffff"><path d="M617.0664600750158 74.9V30.1H622.6440108562658V69.63604785156251H644.2824464031409V74.9Z"/><path d="M671.8792696453282 74.9 684.815286735172 30.1H693.9096060711096L706.8456231609533 74.9H700.9544737468908L689.463245719547 34.4903671875H688.9480484539221L677.4232217937658 74.9ZM679.0808682781408 59.10796240234375V53.84401025390625H699.6888272625158V59.10796240234375Z"/><path d="M738.2504737468907 74.9V30.1H752.5864395672032Q759.597640250797 30.1 763.6184378582188 33.331197265625Q767.6392354656407 36.56239453125 767.6392354656407 42.1959931640625Q767.6392354656407 45.600802734375 765.8472303386876 48.02560546875Q764.0552252117345 50.450408203125 760.8072149578283 51.35760546875V52.1864013671875Q764.424823844547 53.2055986328125 766.4016282879063 55.938399658203124Q768.3784327312658 58.67120068359375 768.3784327312658 62.5800068359375Q768.3784327312658 68.33680615234375 764.1728358074377 71.61840307617189Q759.9672388836095 74.9 752.5864395672032 74.9ZM743.8280245281408 69.725646484375H752.5864395672032Q757.5480587078282 69.725646484375 760.174470328922 67.76003759765626Q762.8008819500158 65.79442871093751 762.8008819500158 62.221612304687504Q762.8008819500158 58.62639453125 760.174470328922 56.66078564453125Q757.5480587078282 54.695176757812504 752.5864395672032 54.695176757812504H743.8280245281408ZM743.8280245281408 49.812020507812505H752.5864395672032Q757.279259391422 49.812020507812505 759.7656710125157 47.930411621093754Q762.2520826336095 46.048802734375 762.2520826336095 42.5543876953125Q762.2520826336095 39.0375712890625 759.7656710125157 37.15596240234375Q757.279259391422 35.274353515625 752.5864395672032 35.274353515625H743.8280245281408Z"/><path d="M803.468021110172 63.476000000000006Q804.3192149578282 66.8808232421875 807.0688221355626 68.6840341796875Q809.818429313297 70.4872451171875 814.1752525554845 70.4872451171875Q818.7224634929845 70.4872451171875 821.3376693035314 68.35363623046875Q823.9528751140782 66.22002734375 823.9528751140782 62.535210937500004Q823.9528751140782 59.5559931640625 822.1160689617345 57.831185302734376Q820.2792628093907 56.10637744140625 816.5608477703282 55.680775390625L810.8488477703282 55.008775390625004Q804.7448580242344 54.25837744140625 801.6368631511875 51.13918017578125Q798.5288682781407 48.01998291015625 798.5288682781407 42.5767890625Q798.5288682781407 38.533591796875 800.488864860172 35.55439453125Q802.4488614422032 32.575197265625 805.9992559734533 30.912Q809.5496505047032 29.248802734374998 814.287245719547 29.248802734374998Q819.0136436687657 29.248802734374998 822.5640382000157 30.844801025390623Q826.1144327312658 32.44079931640625 828.1752286297033 35.425598632812495Q830.2360245281408 38.41039794921875 830.5160245281407 42.644H825.1288716961095Q824.3336778484532 38.72397607421875 821.5280723797032 36.61836547851563Q818.7224669109532 34.5127548828125 814.287245719547 34.5127548828125Q809.5048340984532 34.5127548828125 806.7608272625157 36.674363769531254Q804.0168204265782 38.83597265625 804.0168204265782 42.5767890625Q804.0168204265782 45.5560068359375 805.8760262371251 47.2584150390625Q807.735232047672 48.9608232421875 811.4088477703282 49.431224609375L817.1208477703282 50.103224609375005Q823.2696368328283 50.8088232421875 826.355232047672 53.950420166015626Q829.4408272625158 57.09201708984375 829.4408272625158 62.535210937500004Q829.4408272625158 66.52240820312501 827.5424310222813 69.49600512695314Q825.644034782047 72.46960205078126 822.2168409343908 74.11039965820314Q818.7896470867345 75.75119726562501 814.1752525554845 75.75119726562501Q809.437653922672 75.75119726562501 805.8984583660314 74.29519897460938Q802.3592628093908 72.83920068359376 800.3208665691564 70.07840136718751Q798.2824703289219 67.31760205078126 797.9912696453282 63.476000000000006Z"/></g>
+          <g fill="#b6ff2e">
+            <path id="wm-lb" d="M196.50642589532828 25.12723828125V29.9879931640625H183.96241905939078V77.25200683593751H196.50642589532828V82.11276171875001H178.69846691095327V25.12723828125Z"/>
+            <path id="wm-sl" d="M578.3368204265784 27.412 557.1240245281408 84.42H551.7480723797033L572.9608682781409 27.412Z"/>
+            <path id="wm-rb" d="M871.4184669109533 25.12723828125H889.2264258953282V82.11276171875001H871.4184669109533V77.25200683593751H883.9624737468907V29.9879931640625H871.4184669109533Z"/>
+          </g>
+        </g>
+      </svg>
+      <canvas id="glitch" aria-hidden="true"></canvas>
+    </div>
+  </main>
 
   <script>
-    const logoContainer = document.getElementById('logo-container');
-    let glitchTimeout = null;
-    let autoGlitchInterval = null;
-    let isManuallyGlitching = false;
+  (() => {
+    const $ = s => document.querySelector(s);
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const R2 = (a, b) => a + Math.random() * (b - a);
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Helper to generate dynamic, completely random glitch properties bound to CSS variables
-    function randomizeGlitchVariables() {
-      for (let i = 1; i <= 9; i++) {
-        // Random base shift: between -14px and 14px, avoiding the deadzone of -3px to 3px
-        let baseShift = (Math.random() * 24 - 12);
-        if (Math.abs(baseShift) < 4) {
-          baseShift = baseShift < 0 ? -4 : 4;
-        }
+    const logo = $('#logo'), svg = $('#logo svg');
 
-        // Calculate custom randomized chromatic offsets for red, green, cyan channels
-        const redShift = baseShift - 4 - Math.random() * 2;
-        const greenShift = baseShift * 0.7;
-        const cyanShift = baseShift + 4 + Math.random() * 2;
+    /* Motion tokens. Stepped keyframes carry steps(1, end) on each frame, never on the whole animation. */
+    const E = { snap: 'cubic-bezier(.3,1.35,.5,1)', trace: 'cubic-bezier(.7,0,.2,1)' };
+    const hard = kf => kf.map(k => ({ ...k, easing: 'steps(1, end)' }));
+    const STROBE = hard([{ opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 0, offset: .24 }, { opacity: 1, offset: .4 }, { opacity: .35, offset: .56 }, { opacity: 1, offset: .72 }, { opacity: 1 }]);
+    const TUBE = hard([{ opacity: 0 }, { opacity: .85, offset: .08 }, { opacity: 0, offset: .12 }, { opacity: 0, offset: .3 }, { opacity: .5, offset: .33 }, { opacity: .1, offset: .36 }, { opacity: 1, offset: .52 }, { opacity: .35, offset: .55 }, { opacity: 1, offset: .6 }, { opacity: 1 }]);
 
-        logoContainer.style.setProperty(`--glitch-red-${i}`, `${redShift}px`);
-        logoContainer.style.setProperty(`--glitch-green-${i}`, `${greenShift}px`);
-        logoContainer.style.setProperty(`--glitch-cyan-${i}`, `${cyanShift}px`);
+    /* ================= DOT FIELD =================
+       14px grid, a little brighter toward the centre. Ignition: the unlit grid holds, then a ring
+       expands from the centre of the screen and lights the dots acid as it passes. Idle (Sea): the dots never move;
+       their grey rises and falls about 14% with a slow height field, like ocean swell from above. */
+    const field = $('#field'), fx = field.getContext('2d');
+    let W = 0, H = 0, dpr = 1;
+    const sizeField = () => { dpr = devicePixelRatio || 1; W = innerWidth; H = innerHeight; field.width = Math.round(W * dpr); field.height = Math.round(H * dpr); };
+    const origin = () => [W / 2, H / 2];
+    const reach = (cx, cy) => Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy));
 
-        // Randomize the shapes and vertical positions
-        // Pops 3, 6, and 9 are square blocks/bit artifacts (random vertical and horizontal bounds)
-        if (i === 3 || i === 6 || i === 9) {
-          const top = Math.floor(Math.random() * 70); // 0% to 70%
-          const height = 10 + Math.floor(Math.random() * 20); // 10% to 30% height
-          const bottom = 100 - (top + height);
-          const left = Math.floor(Math.random() * 60); // 0% to 60%
-          const width = 15 + Math.floor(Math.random() * 25); // 15% to 40% width
-          const right = 100 - (left + width);
-
-          logoContainer.style.setProperty(`--clip-top-${i}`, `${top}%`);
-          logoContainer.style.setProperty(`--clip-right-${i}`, `${right}%`);
-          logoContainer.style.setProperty(`--clip-bottom-${i}`, `${bottom}%`);
-          logoContainer.style.setProperty(`--clip-left-${i}`, `${left}%`);
-        } else {
-          // Pops 1, 2, 4, 5, 7, and 8 are full-width horizontal strips
-          const top = Math.floor(Math.random() * 85); // 0% to 85%
-          const height = 2 + Math.floor(Math.random() * 10); // 2% to 12% height
-          const bottom = 100 - (top + height);
-
-          logoContainer.style.setProperty(`--clip-top-${i}`, `${top}%`);
-          logoContainer.style.setProperty(`--clip-right-${i}`, `0%`);
-          logoContainer.style.setProperty(`--clip-bottom-${i}`, `${bottom}%`);
-          logoContainer.style.setProperty(`--clip-left-${i}`, `0%`);
-        }
+    function drawIgnition(p) {
+      fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
+      const [cx, cy] = origin(), max = reach(cx, cy), R = max * p;
+      for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+        const d = Math.hypot(gx - cx, gy - cy), edge = Math.max(0, 1 - d / max);
+        if (d > R) { fx.fillStyle = 'rgba(237,230,225,.11)'; fx.fillRect(gx - .75, gy - .75, 1.5, 1.5); continue; }
+        const ring = Math.max(0, 1 - Math.abs(d - R) / 22);
+        fx.fillStyle = ring > .05 && p < 1 ? `rgba(182,255,46,${.3 + ring * .7})` : `rgba(237,230,225,${.12 + edge * .2})`;
+        fx.fillRect(gx - .75, gy - .75, 1.5, 1.5);
       }
     }
 
-    // Helper to trigger the glitch state
-    function triggerGlitch(duration = 550) {
-      if (logoContainer.classList.contains('is-glitching')) return;
-
-      randomizeGlitchVariables(); // Compute a brand-new random glitch signature!
-      logoContainer.classList.add('is-glitching');
-
-      // Clear any pending timeout to turn off the glitch
-      if (glitchTimeout) {
-        clearTimeout(glitchTimeout);
+    const SEA = [[620, 18, 9, .34], [430, 112, 7, .26], [300, 205, 11, .2], [760, 290, 6, .2]]
+      .map(([l, deg, v, w], i) => { const a = deg * Math.PI / 180; return { kx: Math.cos(a) * 2 * Math.PI / l, ky: Math.sin(a) * 2 * Math.PI / l, w: v * 2 * Math.PI / l, a: w, p: i * 1.7 }; });
+    const sea = { ramp: 0, running: false, t0: performance.now() };
+    function drawSea(now) {
+      const t = (now - sea.t0) / 1000, amp = .14 * sea.ramp;
+      fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
+      const [cx, cy] = origin(), max = reach(cx, cy);
+      for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+        let h = 0; for (const w of SEA) h += w.a * Math.sin(gx * w.kx + gy * w.ky - t * w.w + w.p);
+        const rest = .12 + Math.max(0, 1 - Math.hypot(gx - cx, gy - cy) / max) * .2;
+        fx.fillStyle = `rgba(237,230,225,${Math.max(.04, rest + h * amp).toFixed(3)})`;
+        fx.fillRect(gx - .75, gy - .75, 1.5, 1.5);
       }
+    }
+    function seaLoop(now) {
+      if (!sea.running) return;
+      if (sea.ramp < 1) sea.ramp = Math.min(1, sea.ramp + 1 / 120);  // ramps in over about 2s
+      if (!document.hidden) drawSea(now);
+      requestAnimationFrame(seaLoop);
+    }
+    const startSea = () => { if (reduce) { sea.ramp = 0; drawSea(performance.now()); return; } if (!sea.running) { sea.running = true; requestAnimationFrame(seaLoop); } };
 
-      glitchTimeout = setTimeout(() => {
-        logoContainer.classList.remove('is-glitching');
-        isManuallyGlitching = false;
-      }, duration);
+    function ignite() {
+      return new Promise(done => {
+        const t0 = performance.now(), HOLD = 450, DUR = 1300;
+        const f = () => {
+          const t = Math.min(1, Math.max(0, (performance.now() - t0 - HOLD) / DUR));
+          const e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          drawIgnition(Math.max(.0001, e));
+          if (t >= 1) { done(); return; }
+          requestAnimationFrame(f);
+        };
+        f();
+      });
     }
 
-    // Schedule the next automated glitch with a randomized interval (between 2.5s and 5.5s)
-    function scheduleAutoGlitch() {
-      const delay = 2500 + Math.random() * 3000;
-      
-      autoGlitchInterval = setTimeout(() => {
-        // Only trigger automatically if user is not currently doing interactive gestures
-        if (!isManuallyGlitching) {
-          triggerGlitch(450 + Math.random() * 200); // randomize glitch duration slightly
+    addEventListener('resize', () => { sizeField(); if (!sea.running) drawSea(performance.now()); glitchResize(); });
+
+    /* ================= LOCKUP BOOT =================
+       The mark traces its outline in bone, then its fill flickers on like a tube. The wordmark strobes on
+       as [ / ] with the slash spinning; ASTRA types in to the left of the spinner, LABS to the right,
+       then the slash settles and the brackets snap. */
+    const lettersA = [...document.querySelectorAll('#wm-a path')], lettersB = [...document.querySelectorAll('#wm-b path')];
+    const lb = $('#wm-lb'), sl = $('#wm-sl'), rb = $('#wm-rb'), groupA = $('#wm-a');
+    const box = el => el.getBBox();
+
+    function placeBoot(nA, nB) {
+      // ASTRA grows leftward from the spinner, so its visible letters are pushed right against the slash
+      const aEnd = box(lettersA[lettersA.length - 1]), sb = box(sl), lbb = box(lb), rbb = box(rb), last = box(lettersB[lettersB.length - 1]);
+      const gapA = sb.x - (aEnd.x + aEnd.width), lbGap = box(lettersA[0]).x - (lbb.x + lbb.width), rbGap = rbb.x - (last.x + last.width), gapB = box(lettersB[0]).x - (sb.x + sb.width);
+      let dxA;
+      if (nA === 0) dxA = (sb.x - lbGap) - (lbb.x + lbb.width) - (box(lettersA[0]).x - (lbb.x + lbb.width)) + lbGap;
+      else { const k = box(lettersA[nA - 1]); dxA = (sb.x - gapA) - (k.x + k.width); }
+      lettersA.forEach((p, i) => p.style.visibility = i < nA ? '' : 'hidden');
+      groupA.setAttribute('transform', `translate(${dxA} 0)`);
+      lb.setAttribute('transform', nA === 0 ? `translate(${(sb.x - lbGap) - (lbb.x + lbb.width)} 0)` : `translate(${dxA} 0)`);
+      lettersB.forEach((p, i) => p.style.visibility = i < nB ? '' : 'hidden');
+      const rEdge = nB === 0 ? sb.x + sb.width + (gapB - rbGap) : (() => { const k = box(lettersB[nB - 1]); return k.x + k.width; })();
+      rb.setAttribute('transform', `translate(${rEdge + rbGap - rbb.x} 0)`);
+    }
+    function settleBoot() {
+      lettersA.concat(lettersB).forEach(p => p.style.visibility = '');
+      groupA.removeAttribute('transform'); lb.removeAttribute('transform'); rb.removeAttribute('transform'); sl.removeAttribute('transform');
+    }
+    function spinSlash(i) {
+      const b = box(sl), cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+      sl.setAttribute('transform', `rotate(${[0, 70, 115, 160][i % 4]} ${cx} ${cy})`);  // / — \ |
+    }
+
+    async function boot() {
+      const fill = svg.querySelector('.fill'), trace = [...svg.querySelectorAll('.trace path')], wm = svg.querySelector('.wm');
+      placeBoot(0, 0);
+      await ignite();
+      startSea();
+      // mark: trace, then tube flicker
+      trace.forEach((p, i) => {
+        const L = p.getTotalLength();
+        p.style.strokeDasharray = `${L} ${L}`;
+        p.animate([{ opacity: 1, strokeDashoffset: L }, { opacity: 1, strokeDashoffset: 0, offset: .75 }, { opacity: 0, strokeDashoffset: 0 }], { duration: 1200, delay: i * 140, easing: E.trace, fill: 'both' });
+      });
+      await wait(650);
+      svg.classList.remove('booting'); logo.classList.remove('booting');
+      fill.animate(TUBE, { duration: 800, fill: 'backwards' });
+      wm.style.visibility = 'hidden';
+      await wait(650);
+      // wordmark: [ / ] with a spinner
+      wm.style.visibility = '';
+      [lb, sl, rb].forEach(el => el.animate(STROBE, { duration: 340, fill: 'backwards' }));
+      let i = 0; spinSlash(0);
+      const spin = setInterval(() => spinSlash(++i), 90);
+      await wait(480);
+      for (let n = 1; n <= lettersA.length; n++) { placeBoot(n, 0); await wait(60); }
+      await wait(200);
+      for (let n = 1; n <= lettersB.length; n++) { placeBoot(lettersA.length, n); await wait(60); }
+      await wait(220);
+      clearInterval(spin); settleBoot();
+      lb.animate([{ transform: 'none' }, { transform: 'translateX(-14px)', offset: .4 }, { transform: 'none' }], { duration: 360, easing: E.snap });
+      rb.animate([{ transform: 'none' }, { transform: 'translateX(14px)', offset: .4 }, { transform: 'none' }], { duration: 360, easing: E.snap });
+      trace.forEach(p => p.getAnimations().forEach(a => a.cancel()));
+      await wait(400);
+    }
+
+    /* ================= GLITCH =================
+       A burst of 7–13 stepped frames whose strength rises and falls, then snaps back clean.
+       Five layers: chromatic split, line shift, block tear, frame jitter and dropout. */
+    const gc = $('#glitch'); let gx = null, src = null, tint = {}, GW = 0, GH = 0, gd = 1, img = null;
+    const FRINGE = { r: '#ff0000', g: '#00ff00', b: '#0000ff' };
+    function glitchResize() {
+      if (!img) return;
+      const r = gc.getBoundingClientRect(); gd = devicePixelRatio || 1;
+      GW = Math.max(2, Math.round(r.width * gd)); GH = Math.max(2, Math.round(r.height * gd));
+      gc.width = GW; gc.height = GH; gx = gc.getContext('2d');
+      const lr = svg.getBoundingClientRect(), w = lr.width * gd, h = lr.height * gd;
+      const mk = () => { const t = document.createElement('canvas'); t.width = GW; t.height = GH; return t; };
+      src = mk(); src.getContext('2d').drawImage(img, Math.round((lr.left - r.left) * gd), Math.round((lr.top - r.top) * gd), w, h);
+      for (const [k, col] of Object.entries(FRINGE)) {
+        const t = mk(), tx = t.getContext('2d');
+        tx.drawImage(src, 0, 0); tx.globalCompositeOperation = 'multiply'; tx.fillStyle = col; tx.fillRect(0, 0, GW, GH);
+        tx.globalCompositeOperation = 'destination-in'; tx.drawImage(src, 0, 0); tint[k] = t;
+      }
+    }
+    function glitchFrame(k) {
+      const x = gx, d = gd;
+      x.clearRect(0, 0, GW, GH);
+      const jx = Math.round(R2(-3, 3) * k) * d, jy = Math.random() < .3 ? Math.round(R2(-1, 1)) * d : 0;
+      const rows = []; const band = R2(.3, .7) * GH, bw = R2(.04, .12) * GH;
+      for (let y = 0; y < GH;) { const rh = Math.round(R2(1, 7)) * d, hit = Math.abs(y - band) < bw; const off = (hit ? Math.random() < .75 : Math.random() < .12 * k) ? Math.round(R2(-1, 1) * (hit ? 28 : 9) * k) * d : 0; rows.push([y, Math.min(rh, GH - y), off]); y += rh; }
+      const draw = (im, ox) => { for (const [y, h, off] of rows) if (h > 0) x.drawImage(im, 0, y, GW, h, ox + jx + off, y + jy, GW, h); };
+      x.globalAlpha = Math.random() < .3 + .3 * k ? R2(.15, .5) : 1;
+      const ca = Math.max(1, Math.round(R2(.6, 2.6) * k)) * d, a0 = x.globalAlpha;
+      x.globalCompositeOperation = 'lighter';
+      draw(tint.r, ca); draw(tint.g, Math.round(R2(-.4, .4) * ca)); draw(tint.b, -ca);
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = a0 * .45; draw(src, 0); x.globalAlpha = 1;
+      const n = 1 + Math.floor(R2(0, 4) * k);
+      for (let i = 0; i < n; i++) {
+        const bw2 = R2(.05, .28) * GW, bh = Math.max(2 * d, R2(.02, .05) * GH), bx = R2(.15, .85) * GW - bw2 / 2, by = R2(.36, .64) * GH, dx = Math.round(R2(-1, 1) * 36 * k) * d;
+        x.clearRect(bx, by, bw2, bh); x.drawImage(src, Math.max(0, bx), by, bw2, bh, bx + dx, by, bw2, bh);
+        if (Math.random() < .3) { x.fillStyle = 'rgba(182,255,46,.9)'; x.fillRect(bx + dx, by + bh * .45, bw2 * R2(.2, .8), Math.max(d, bh * .12)); }
+      }
+    }
+    let glitching = false;
+    async function glitch(k = .6) {
+      if (reduce || glitching || !src || document.hidden) return;
+      glitching = true; logo.classList.add('is-glitching');
+      const n = Math.round(7 + 6 * k);
+      for (let i = 0; i < n; i++) { const env = Math.sin(Math.PI * (i + .5) / n); glitchFrame(k * (.4 + .6 * env) * R2(.7, 1)); await wait(R2(26, 62)); }
+      logo.classList.remove('is-glitching'); glitching = false;
+    }
+    function scheduleIdle() { setTimeout(() => { glitch(.6); scheduleIdle(); }, R2(8000, 20000)); }
+
+    async function loadGlitch() {
+      const clone = svg.cloneNode(true);
+      clone.querySelectorAll('.trace').forEach(n => n.remove());
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg'); clone.setAttribute('width', 904.68 * 4); clone.setAttribute('height', 105 * 4);
+      clone.removeAttribute('class');
+      img = new Image();
+      await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone)); });
+      glitchResize();
+    }
+
+    logo.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') glitch(.45); });
+    logo.addEventListener('click', () => glitch(.85));
+    logo.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); glitch(.85); } });
+
+    /* ================= CLOCK ================= */
+    const clock = $('#clock'), pad = n => String(n).padStart(2, '0');
+    const tick = () => { const d = new Date(); clock.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; clock.dateTime = clock.textContent; setTimeout(tick, 1000 - d.getMilliseconds()); };
+    tick();
+
+    /* ================= CORNERS =================
+       After the lockup lands: the registration marks align, the clock strobes on,
+       then the byline types itself out. */
+
+    // Registration align: each mark cuts in and out at two or three random spots
+    // (70–130ms on, 50–120ms off), then strobes into its corner and holds. Position never animates.
+    async function registerAlign() {
+      const regs = [...document.querySelectorAll('.reg')];
+      regs.forEach(r => r.style.opacity = 0);
+      document.body.classList.remove('booting-hud');
+      await Promise.all(regs.map(async (r, i) => {
+        await wait(i * 110);
+        for (let n = 2 + Math.floor(Math.random() * 2), k = 0; k < n; k++) {
+          Object.assign(r.style, { left: R2(6, 90) + '%', top: R2(8, 82) + '%', right: 'auto', bottom: 'auto', opacity: 1 });
+          await wait(R2(70, 130));
+          r.style.opacity = 0;
+          await wait(R2(50, 120));
         }
-        scheduleAutoGlitch();
-      }, delay);
+        r.removeAttribute('style');
+        r.animate(STROBE, { duration: 340 });
+        await wait(340);
+      }));
     }
 
-    // Interactive Hover: Triggers a quick glitch on mouse entering the logo
-    logoContainer.addEventListener('mouseenter', () => {
-      isManuallyGlitching = true;
-      triggerGlitch(350);
-    });
+    // Byline types itself out behind an acid block cursor. The whole line is laid out from the start
+    // with the untyped part invisible, and the cursor takes no width, so nothing ever shifts.
+    async function typeByline() {
+      const el = $('#byline'), parts = [['A BRAND BY ', ''], ['//', 'b'], [' EMILY ASTRANOVA', '']];
+      const total = parts.reduce((n, [t]) => n + t.length, 0);
+      const wrap = (t, tag) => t ? (tag ? `<${tag}>${t}</${tag}>` : t) : '';
+      const render = (n, cursor) => {
+        let left = n, shown = '', rest = '';
+        for (const [t, tag] of parts) { const k = Math.min(t.length, Math.max(0, left)); left -= t.length; shown += wrap(t.slice(0, k), tag); rest += wrap(t.slice(k), tag); }
+        el.innerHTML = shown + (cursor ? '<span class="cur"></span>' : '') + (rest ? `<span class="rest">${rest}</span>` : '');
+      };
+      render(0, true);
+      el.style.visibility = 'visible';
+      await wait(320);
+      for (let n = 1; n <= total; n++) { render(n, true); await wait(n === 11 || n === 13 ? 140 : 42); }  // a beat around the //
+      await wait(260);
+      render(total, false);
+    }
 
-    // Interactive Click: Triggers a stronger, slightly longer glitch on click/tap
-    logoContainer.addEventListener('click', () => {
-      isManuallyGlitching = true;
-      triggerGlitch(750); // Intense, long glitch for satisfying physical feedback
-    });
+    async function corners() {
+      const clockEl = $('#clock'), byline = $('#byline');
+      clockEl.style.visibility = byline.style.visibility = 'hidden';
+      await registerAlign();
+      await wait(120);
+      clockEl.style.visibility = 'visible';
+      clockEl.animate(STROBE, { duration: 340 });
+      await wait(520);
+      await typeByline();
+    }
 
-    // Start the automated loop
-    randomizeGlitchVariables();
-    scheduleAutoGlitch();
+    /* ================= START ================= */
+    sizeField();
+    if (reduce) { drawSea(performance.now()); loadGlitch(); return; }
+    logo.classList.add('booting'); document.body.classList.add('booting-hud');
+    drawIgnition(.0001);
+    boot().then(() => { loadGlitch(); return corners(); }).then(scheduleIdle).catch(() => { document.body.classList.remove('booting-hud'); $('#clock').style.visibility = $('#byline').style.visibility = ''; settleBoot(); logo.classList.remove('booting'); startSea(); });
+  })();
   </script>
 </body>
 </html>
