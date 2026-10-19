@@ -1,0 +1,213 @@
+/* AstraLabs: drop-in stylesheet for homelab services and project pages.
+   Generated from the AstraLabs design system (tokens.json + components/bundle.css).
+   Put fonts/MartianMono-Variable.woff2 next to this file. Archivo loads from Google Fonts. */
+@import url("https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,300..900;1,62..125,300..900&display=swap");
+
+@font-face { font-family: 'Martian Mono'; src: url('fonts/MartianMono-Variable.woff2') format('woff2'); font-weight: 100 800; font-stretch: 75% 112.5%; font-display: swap; }
+
+:root {
+  --void: #0a0909;
+  --plate: #131212;
+  --rule: #2c2a29;
+  --rule-subtle: #1c1b1a;
+  --mark: #ffffff;
+  --bone: #ede6e1;
+  --ash: #8e8380;
+  --acid: #b6ff2e;
+  --acid-hi: #ccff6b;
+  --on-acid: #0a0909;
+  --status-ok: #4dff88;
+  --status-warn: #ffa21f;
+  --status-down: #ff2e3a;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-18: 72px;
+  --radius-none: 0px;
+  --radius-dot: 50%;
+  --chamfer-sm: 9px;
+  --chamfer-md: 22px;
+  --chamfer-lg: 28px;
+  --angle-cut: 60deg;
+  --hairline: 1px;
+  --trace: 1.5px;
+  --focus: 2px;
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, Menlo, monospace;
+}
+.headline-xl { font-family: var(--font-display); font-size: 64px; line-height: 0.9; font-weight: 900; letter-spacing: -0.01em; }
+.headline { font-family: var(--font-display); font-size: 40px; line-height: 1; font-weight: 800; }
+.title { font-family: var(--font-display); font-size: 22px; line-height: 1.15; font-weight: 800; letter-spacing: 0.02em; }
+.subtitle { font-family: var(--font-display); font-size: 16px; line-height: 1.3; font-weight: 700; }
+.body { font-family: var(--font-display); font-size: 15px; line-height: 1.55; font-weight: 400; }
+.body-sm { font-family: var(--font-display); font-size: 13px; line-height: 1.45; font-weight: 400; }
+.label { font-family: var(--font-mono); font-size: 10.5px; line-height: 1.3; font-weight: 500; letter-spacing: 0.14em; }
+.data { font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; font-weight: 400; }
+.readout { font-family: var(--font-mono); font-size: 22px; line-height: 1; font-weight: 300; }
+.wordmark { font-family: var(--font-mono); font-size: 24px; line-height: 1; font-weight: 300; letter-spacing: 0.36em; }
+
+/* AstraLabs components. Colours, type families, spacing, radii and chamfers come from tokens.css.
+   Motion has no token family, so it lives here. */
+:root {
+  --al-t-flick: 40ms;   --al-e-flick: steps(1, end);
+  --al-t-snap: 200ms;   --al-e-snap: cubic-bezier(.3, 1.35, .5, 1);
+  --al-t-trace: 900ms;  --al-e-trace: cubic-bezier(.7, 0, .2, 1);
+  --al-t-settle: 360ms; --al-e-settle: cubic-bezier(.16, 1, .3, 1);
+  --al-stagger: 60ms;
+  --al-t-strobe: 340ms; --al-t-wipe: 560ms;
+  --al-dot: color-mix(in oklab, var(--bone) 22%, transparent);
+  color-scheme: dark;
+}
+html, body { background: var(--void); color: var(--bone); }
+body { margin: 0; font-family: var(--font-display); font-size: 15px; line-height: 1.55; }
+.al-surface { background: var(--void); color: var(--bone); padding: 16px; }
+.al-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.al-label { font-family: var(--font-mono); font-size: 10.5px; line-height: 1.3; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-variation-settings: "wdth" 85; color: var(--ash); }
+:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+
+/* ---------- line markers and dot grids ---------- */
+.al-ticks { --al-tk: color-mix(in oklab, var(--bone) 55%, transparent); --al-tl: 8px; background-image:
+  linear-gradient(var(--al-tk), var(--al-tk)), linear-gradient(var(--al-tk), var(--al-tk)), linear-gradient(var(--al-tk), var(--al-tk)), linear-gradient(var(--al-tk), var(--al-tk)),
+  linear-gradient(var(--al-tk), var(--al-tk)), linear-gradient(var(--al-tk), var(--al-tk)), linear-gradient(var(--al-tk), var(--al-tk)), linear-gradient(var(--al-tk), var(--al-tk));
+  background-repeat: no-repeat;
+  background-position: top left, top left, top right, top right, bottom left, bottom left, bottom right, bottom right;
+  background-size: var(--al-tl) 1px, 1px var(--al-tl), var(--al-tl) 1px, 1px var(--al-tl), var(--al-tl) 1px, 1px var(--al-tl), var(--al-tl) 1px, 1px var(--al-tl); }
+.al-dots { background-image: radial-gradient(circle at center, var(--al-dot) 0 1px, transparent 1.4px); background-size: 16px 16px; background-position: 8px 8px; }
+.al-mrule { position: relative; height: 9px; border-bottom: 1px solid var(--rule); }
+.al-mrule::before, .al-mrule::after { content: ""; position: absolute; bottom: -1px; width: 1px; height: 9px; background: var(--ash); }
+.al-mrule::before { left: 0; } .al-mrule::after { right: 0; }
+.al-mrule > i { position: absolute; left: 0; bottom: -1px; width: 32px; height: 2px; background: var(--acid); }
+.al-leaders { display: grid; margin: 0; font: 400 12px/1.4 var(--font-mono); font-variation-settings: "wdth" 85; }
+.al-leaders > div { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; }
+.al-leaders dt { margin: 0; color: var(--ash); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.al-leaders > div > i { flex: 1; min-width: 16px; border-bottom: 1px dotted color-mix(in oklab, var(--ash) 60%, transparent); transform: translateY(-3px); }
+.al-leaders dd { margin: 0; color: var(--bone); text-align: right; }
+
+/* entrance: .al-light plays Light-up on a box's contents (set --al-i for stagger); Trace-in for borders needs script (see Motion).
+   .al-enter plays a smooth Wipe-in, for lines drawing on. .al-power plays Strobe-in, for things that power on. */
+@keyframes al-light { 0% { opacity: .1; filter: brightness(.6) drop-shadow(0 0 0 rgba(182,255,46,0)); } 16% { opacity: .1; filter: brightness(.6) drop-shadow(0 0 0 rgba(182,255,46,0)); animation-timing-function: steps(1, end); } 22% { opacity: .6; filter: brightness(1) drop-shadow(0 0 0 rgba(182,255,46,0)); animation-timing-function: steps(1, end); } 28% { opacity: .12; filter: brightness(.6) drop-shadow(0 0 0 rgba(182,255,46,0)); animation-timing-function: cubic-bezier(.16,1,.3,1); } 60% { opacity: 1; filter: brightness(1.35) drop-shadow(0 0 6px rgba(182,255,46,.35)); animation-timing-function: cubic-bezier(.16,1,.3,1); } 100% { opacity: 1; filter: brightness(1) drop-shadow(0 0 0 rgba(182,255,46,0)); } }
+.al-light { animation: al-light 900ms linear both; animation-delay: calc(var(--al-i, 0) * var(--al-stagger)); }
+@keyframes al-wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes al-strobe { 0% { opacity: 0; } 12% { opacity: 1; } 24% { opacity: 0; } 40% { opacity: 1; } 56% { opacity: .35; } 72%, 100% { opacity: 1; } }
+.al-enter { animation: al-wipe var(--al-t-wipe) var(--al-e-settle) both; animation-delay: calc(var(--al-i, 0) * var(--al-stagger)); }
+.al-power { animation: al-strobe var(--al-t-strobe) steps(1, end) both; }
+
+/* ---------- keyframes ---------- */
+@keyframes al-tube { 0% { opacity: 0; } 8% { opacity: .85; } 12% { opacity: 0; } 30% { opacity: 0; } 33% { opacity: .5; } 36% { opacity: .1; } 52% { opacity: 1; } 55% { opacity: .35; } 60%, 100% { opacity: 1; } }
+@keyframes al-flick { 0% { opacity: 0; } 20% { opacity: 1; } 35% { opacity: .2; } 50%, 100% { opacity: 1; } }
+@keyframes al-draw { 0% { stroke-dashoffset: 1; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+@keyframes al-snap-l { 40% { transform: translateX(-.35em); } }
+@keyframes al-snap-r { 40% { transform: translateX(.35em); } }
+@keyframes al-blink { 50% { opacity: .15; } }
+@keyframes al-bracket-in { from { opacity: 0; transform: scale(1.6); } to { opacity: 1; transform: none; } }
+
+/* ---------- Mark ---------- */
+.al-mark { display: block; color: var(--mark); flex: none; overflow: visible; }
+.al-mark-fill path { fill: currentColor; }
+.al-mark-outline path { fill: none; stroke: var(--bone); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-dasharray: 1; opacity: 0; }
+.al-mark.is-tracing .al-mark-outline path { animation: al-draw 1300ms var(--al-e-trace) both; }
+.al-mark.is-tracing .al-mark-outline path + path { animation-delay: 140ms; }
+.al-mark.is-tracing .al-mark-fill { animation: al-tube 800ms linear 650ms both; }
+
+/* ---------- Wordmark ---------- */
+.al-wm { display: inline-flex; align-items: baseline; font-family: var(--font-mono); font-weight: 300; font-variation-settings: "wdth" 112.5; text-transform: uppercase; line-height: 1; color: var(--mark); white-space: nowrap; }
+.al-wm-in { letter-spacing: .36em; }
+.al-wm-br, .al-wm-sl { color: var(--acid); }
+.al-wm-br { display: inline-block; transition: transform var(--al-t-snap) var(--al-e-snap); }
+.al-wm-lb { margin-right: .5em; }
+.al-wm-rb { margin-left: .14em; }
+.al-wm-sl { display: inline-block; min-width: .62em; text-align: center; }
+.al-wm-cur { display: inline-block; width: .6em; height: 1em; background: var(--acid); vertical-align: -.12em; margin-right: .36em; animation: al-blink 1s steps(1, end) infinite; }
+.al-wm.is-booting .al-wm-br, .al-wm.is-booting .al-wm-sl { animation: al-strobe var(--al-t-strobe) steps(1, end) both; }
+.al-wm-lb.is-snap { animation: al-snap-l 360ms var(--al-e-snap); }
+.al-wm-rb.is-snap { animation: al-snap-r 360ms var(--al-e-snap); }
+
+/* ---------- Lockup ---------- */
+.al-lockup { display: inline-flex; align-items: center; line-height: 1; max-width: 100%; }
+.al-lockup.is-stacked { flex-direction: column; }
+.al-lockup.is-interactive:hover .al-wm-lb { transform: translateX(-.45em); }
+.al-lockup.is-interactive:hover .al-wm-rb { transform: translateX(.45em); }
+
+/* ---------- Button: square; only the filled primary is cut ---------- */
+.al-btn { font: 600 11px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; font-variation-settings: "wdth" 85; padding: 12px 16px; border: 1px solid var(--rule); background: transparent; color: var(--bone); cursor: pointer; transition: background-color var(--al-t-flick) var(--al-e-flick), color var(--al-t-flick) var(--al-e-flick), border-color var(--al-t-flick) var(--al-e-flick); }
+.al-btn:active { transform: translateY(1px); }
+.al-btn-primary { background: var(--acid); border-color: var(--acid); color: var(--on-acid); padding-right: 22px; clip-path: polygon(0 0, calc(100% - var(--chamfer-sm)) 0, 100% calc(var(--chamfer-sm) * 1.732), 100% 100%, 0 100%); }
+.al-btn-primary:hover { background: var(--acid-hi); border-color: var(--acid-hi); }
+.al-btn-ghost { border-color: var(--acid); }
+.al-btn-ghost:hover { background: var(--acid); color: var(--on-acid); }
+.al-btn-quiet { color: var(--ash); }
+.al-btn-quiet:hover { border-color: var(--bone); color: var(--bone); }
+.al-btn-danger { color: var(--status-down); border-color: var(--status-down); }
+.al-btn-danger:hover { background: var(--status-down); color: var(--void); }
+.al-btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+
+/* ---------- Panel: square, corner ticks ---------- */
+.al-panel { background-color: var(--plate); border: 1px solid var(--rule-subtle); padding: 14px; display: grid; gap: 8px; align-content: space-between; min-height: 88px; min-width: 0; }
+.al-panel.is-active { --al-tk: var(--acid); border-color: var(--rule); }
+.al-panel-v { font: 300 22px/1 var(--font-mono); color: var(--bone); font-variant-numeric: tabular-nums; }
+.al-panel-v small { font-size: 11px; color: var(--ash); }
+
+/* ---------- Readout ---------- */
+.al-readout { display: inline-grid; gap: 4px; }
+.al-readout b { font: 400 11.5px/1.5 var(--font-mono); font-variation-settings: "wdth" 85; color: var(--bone); font-variant-numeric: tabular-nums; }
+.al-readout b small { color: var(--ash); font-size: inherit; }
+
+/* ---------- StatusPill ---------- */
+.al-pill { display: inline-flex; align-items: center; gap: 7px; font: 500 10px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; font-variation-settings: "wdth" 85; }
+.al-pill::before { content: ""; width: 9px; height: 9px; flex: none; }
+.al-pill.is-ok { color: var(--status-ok); } .al-pill.is-ok::before { background: var(--status-ok); }
+.al-pill.is-warn { color: var(--status-warn); } .al-pill.is-warn::before { background: repeating-linear-gradient(120deg, var(--status-warn) 0 2px, transparent 2px 4px); outline: 1px solid var(--status-warn); }
+.al-pill.is-down { color: var(--status-down); } .al-pill.is-down::before { background: var(--status-down); animation: al-blink 1.2s steps(1, end) infinite; }
+.al-pill.is-sync { color: var(--bone); } .al-pill.is-sync::before { border: 1px solid var(--bone); border-radius: var(--radius-dot); }
+
+/* ---------- Dial: one ring, one arc, four markers ---------- */
+.al-dial { display: inline-grid; justify-items: center; gap: 6px; }
+.al-dial svg { display: block; overflow: visible; }
+.al-dial-trk { fill: none; stroke: var(--rule); stroke-width: 2; }
+.al-dial-arc { fill: none; stroke: var(--acid); stroke-width: 2; }
+.al-dial-mk { stroke: var(--ash); stroke-width: 1; }
+.al-dial-v { fill: var(--bone); font: 300 20px var(--font-mono); font-variant-numeric: tabular-nums; }
+.al-dial-u { fill: var(--ash); font-size: 9px; }
+
+/* ---------- HazardBand ---------- */
+.al-hazard { background: repeating-linear-gradient(120deg, var(--acid) 0 7px, transparent 7px 14px); }
+
+/* ---------- SerialTag / barcode ---------- */
+.al-barcode { display: flex; align-items: stretch; padding: 3px 6px; background: var(--bone); height: 30px; }
+.al-barcode i { display: block; background: var(--void); }
+.al-serial { display: grid; gap: 6px; width: 100%; max-width: 280px; }
+.al-serial-row { display: flex; justify-content: space-between; gap: 8px; font: 400 9.5px var(--font-mono); letter-spacing: .12em; color: var(--ash); }
+
+/* ---------- AssetTag ---------- */
+.al-tag { display: grid; width: 100%; max-width: 320px; }
+.al-tag-bar { display: flex; justify-content: space-between; background: var(--acid); color: var(--on-acid); padding: 5px 8px; font: 800 10px/1 var(--font-display); font-variation-settings: "wdth" 75; letter-spacing: .16em; text-transform: uppercase; }
+.al-tag-body { border: 1px solid var(--bone); border-top: 0; padding: 14px 12px; }
+.al-tag-foot { display: grid; grid-template-columns: 1fr auto; border: 1px solid var(--bone); border-top: 0; height: 22px; }
+.al-tag-foot .al-barcode { height: 100%; }
+
+/* ---------- FocusFrame ---------- */
+.al-focus { position: relative; padding: 16px; display: inline-grid; place-items: center; }
+.al-focus-c { position: absolute; width: 12px; height: 12px; border: 0 solid var(--acid); opacity: 0; }
+.al-focus.is-active .al-focus-c { opacity: 1; animation: al-bracket-in var(--al-t-snap) var(--al-e-snap) both; }
+.c1 { top: 0; left: 0; border-top-width: 2px; border-left-width: 2px; }
+.c2 { top: 0; right: 0; border-top-width: 2px; border-right-width: 2px; }
+.c3 { bottom: 0; left: 0; border-bottom-width: 2px; border-left-width: 2px; }
+.c4 { bottom: 0; right: 0; border-bottom-width: 2px; border-right-width: 2px; }
+
+/* ---------- Terminal ---------- */
+.al-term { font: 400 11.5px/1.7 var(--font-mono); font-variation-settings: "wdth" 85; color: var(--bone); background: var(--void); border: 1px solid var(--rule); padding: 16px; overflow-x: auto; }
+.al-term-lock { margin: 6px 0 12px; }
+.al-term-line { white-space: pre; }
+.al-term-dim { color: var(--ash); }
+.al-term-k { color: var(--acid); }
+.al-term-cur { display: inline-block; width: .6em; height: 1.1em; vertical-align: -.2em; background: var(--bone); animation: al-blink 1s steps(1, end) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .al-mark *, .al-wm *, .al-wm, .al-pill::before, .al-focus-c, .al-term-cur, .al-enter, .al-power, .al-light { animation: none !important; transition: none !important; }
+  .al-mark-outline path { opacity: 0; }
+  .al-focus.is-active .al-focus-c { opacity: 1; }
+}

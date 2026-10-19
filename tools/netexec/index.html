@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NETEXEC LOG PARSER // ASTRALABS</title>
+  
+  <link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap">
+  
+  <link rel="stylesheet" href="brand/astralabs.css">
+  
+  <style>
+    /* AstraLabs Custom App Layout & Polish */
+    :root {
+      --gutter: clamp(16px, 3vw, 36px);
+      --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+      --font-mono: "Martian Mono", ui-monospace, Menlo, monospace;
+      --al-dot: color-mix(in oklab, var(--bone) 22%, transparent);
+    }
+    
+    * { box-sizing: border-box; }
+    
+    /* Dot Grid Background with vignette mask */
+    body {
+      background-color: var(--void);
+      color: var(--bone);
+      font-family: var(--font-display);
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle at center, var(--al-dot) 0 1px, transparent 1.4px);
+      background-size: 18px 18px;
+      background-position: 9px 9px;
+      -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 40%, transparent 100%);
+      mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 40%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.85;
+    }
+
+    /* Topbar */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: color-mix(in oklab, var(--void) 92%, transparent);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--rule);
+    }
+    .topbar-in {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 12px var(--gutter);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .app-title {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--bone);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .app-title span.tag-sub {
+      color: var(--ash);
+      font-size: 11px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    /* Main Container */
+    .app-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px var(--gutter) 60px;
+      width: 100%;
+      flex: 1;
+      display: grid;
+      gap: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Grid Layout: Top Controls & Input */
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+    }
+    @media (max-width: 1080px) {
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Input Card */
+    .input-card {
+      background: var(--plate);
+      border: 1px solid var(--rule);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--rule-subtle);
+      padding-bottom: 10px;
+    }
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ash);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title b {
+      color: var(--acid);
+      font-weight: 600;
+    }
+
+    /* Textarea with styling */
+    .log-textarea-wrap {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    textarea.log-textarea {
+      width: 100%;
+      height: 100%;
+      flex: 1;
+      min-height: 220px;
+      background: var(--void);
+      border: 1px solid var(--rule);
+      color: var(--bone);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.55;
+      padding: 12px;
+      box-sizing: border-box;
+      resize: vertical;
+      font-variation-settings: "wdth" 85;
+      font-variant-numeric: tabular-nums;
+      transition: border-color var(--al-t-settle) var(--al-e-settle), box-shadow var(--al-t-settle) var(--al-e-settle);
+    }
+    textarea.log-textarea:focus {
+      outline: none;
+      border-color: var(--acid);
+      box-shadow: inset 0 -2px 0 var(--acid);
+    }
+    textarea.log-textarea::placeholder {
+      color: color-mix(in oklab, var(--ash) 60%, var(--void));
+      font-family: var(--font-mono);
+    }
+
+    /* Drop overlay */
+    .drop-overlay {
+      position: absolute;
+      inset: 0;
+      background: color-mix(in oklab, var(--void) 85%, var(--acid) 15%);
+      border: 2px dashed var(--acid);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .drop-overlay.active {
+      display: flex;
+    }
+
+    /* Mode Segmented Controls */
+    .seg-group {
+      display: inline-flex;
+      border: 1px solid var(--rule);
+      flex-wrap: wrap;
+    }
+    .seg-btn {
+      border: 0;
+      background: transparent;
+      padding: 7px 11px;
+      font: 500 10px/1 var(--font-mono);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--ash);
+      cursor: pointer;
+      font-variation-settings: "wdth" 85;
+      transition: all var(--al-t-flick) var(--al-e-flick);
+    }
+    .seg-btn + .seg-btn {
+      border-left: 1px solid var(--rule);
+    }
+    .seg-btn:hover {
+      color: var(--bone);
+    }
+    .seg-btn.active {
+      background: var(--acid);
+      color: var(--on-acid);
+      font-weight: 700;
+    }
+
+    /* Stats & Metadata Panel */
+    .sidebar-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .stat-card {
+      background: var(--plate);
+      border: 1px solid var(--rule);
+      padding: 14px;
+      display: grid;
+      gap: 6px;
+    }
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      font-weight: 300;
+      color: var(--bone);
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-val.highlight {
+      color: var(--acid);
+    }
+    .stat-meta {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ash);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Filter & Search Bar */
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--plate);
+      border: 1px solid var(--rule);
+      padding: 12px 16px;
+    }
+    .toolbar-left, .toolbar-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .search-input {
+      background: var(--void);
+      border: 1px solid var(--rule);
+      padding: 6px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--bone);
+      width: 240px;
+      transition: border-color 0.2s;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--acid);
+    }
+
+    /* Table & Live Preview Container */
+    .table-section {
+      background: var(--plate);
+      border: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      min-height: 250px;
+    }
+    .tbl-scroll-wrap {
+      overflow-x: auto;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    table.live-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.45;
+      font-variation-settings: "wdth" 85;
+      font-variant-numeric: tabular-nums;
+      min-width: 800px;
+    }
+    .live-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ash);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--rule);
+      background: var(--plate);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      user-select: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .live-table th:hover {
+      color: var(--bone);
+    }
+    .live-table th.sort-asc::after {
+      content: " ↑";
+      color: var(--acid);
+    }
+    .live-table th.sort-desc::after {
+      content: " ↓";
+      color: var(--acid);
+    }
+    .live-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--rule-subtle);
+      white-space: nowrap;
+      color: var(--bone);
+    }
+    .live-table td.idx-col {
+      color: var(--ash);
+      font-size: 10px;
+      width: 48px;
+      user-select: none;
+      border-right: 1px solid var(--rule-subtle);
+      background: color-mix(in oklab, var(--void) 50%, transparent);
+    }
+    .live-table tr:hover td {
+      background: color-mix(in oklab, var(--plate), var(--bone) 3%);
+    }
+    .live-table tr.selected td {
+      background: color-mix(in oklab, var(--acid) 8%, var(--plate));
+    }
+    .live-table tr.selected td.idx-col {
+      color: var(--acid);
+      font-weight: 700;
+    }
+
+    /* Badge highlight for signing / smbv1 / null auth / pwn3d */
+    .val-danger {
+      color: var(--status-down);
+      font-weight: 600;
+    }
+    .val-warn {
+      color: var(--status-warn);
+    }
+    .val-ok {
+      color: var(--status-ok);
+    }
+    .val-acid {
+      color: var(--acid);
+    }
+    .val-pwn3d {
+      color: var(--status-ok);
+      font-weight: 700;
+      text-shadow: 0 0 8px rgba(77, 255, 136, 0.4);
+    }
+
+    /* Notification toast */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--plate);
+      border: 1px solid var(--acid);
+      color: var(--bone);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 10px 16px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: al-wipe 0.25s var(--al-e-settle) both;
+    }
+    .toast::before {
+      content: "■";
+      color: var(--acid);
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 60px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--ash);
+    }
+    .empty-state .icon {
+      font-size: 32px;
+      opacity: 0.5;
+    }
+
+    /* File drop area */
+    .file-input-hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="topbar-in">
+      <div class="brand-group">
+        <a href="/tools/" class="al-lockup al-lockup-mono al-lockup-interactive" style="text-decoration:none;" title="AstraLabs Tools">
+          <svg class="al-mark" width="28" height="24" viewBox="0 0 600 519.62">
+            <g class="al-mark-fill"><path d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/><path d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/></g>
+          </svg>
+          <span class="al-wm" style="margin-left: 8px; font-size: 16px;">
+            <span class="al-wm-br al-wm-lb">[</span><span class="al-wm-in">ASTRA</span><span class="al-wm-sl">/</span><span class="al-wm-in">LABS</span><span class="al-wm-br al-wm-rb">]</span>
+          </span>
+        </a>
+        <div style="width: 1px; height: 18px; background: var(--rule);"></div>
+        <a href="/tools/" style="text-decoration:none; font-family:var(--font-mono); font-size:10.5px; color:var(--ash); letter-spacing:0.12em; text-transform:uppercase;" onmouseover="this.style.color='var(--acid)'" onmouseout="this.style.color='var(--ash)'">TOOLS</a>
+        <div style="width: 1px; height: 18px; background: var(--rule);"></div>
+        <div class="app-title">
+          <span>NETEXEC LOG PARSER</span>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <button type="button" class="al-btn al-btn-quiet" id="btn-load-sample-smb" style="padding: 6px 11px; font-size: 10px;">SAMPLE SMB</button>
+        <button type="button" class="al-btn al-btn-quiet" id="btn-load-sample-ssh" style="padding: 6px 11px; font-size: 10px;">SAMPLE SSH LOG</button>
+        <button type="button" class="al-btn al-btn-danger" id="btn-clear" style="padding: 6px 11px; font-size: 10px;">CLEAR</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="app-container">
+    
+    <!-- Top Grid: Input & Info -->
+    <div class="workspace-grid">
+      
+      <!-- Input Card -->
+      <div class="input-card al-ticks">
+        <div class="card-header">
+          <div class="card-title">
+            NETEXEC LOG INPUT
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="al-label" style="font-size:9.5px;">MODE:</span>
+            <div class="seg-group" id="mode-selector">
+              <button type="button" class="seg-btn active" data-mode="auto">AUTO DETECT</button>
+              <button type="button" class="seg-btn" data-mode="ldap">LDAP</button>
+              <button type="button" class="seg-btn" data-mode="smb">SMB</button>
+              <button type="button" class="seg-btn" data-mode="service">SERVICE (SSH/WINRM/RDP)</button>
+              <button type="button" class="seg-btn" data-mode="forced">DYNAMIC / FORCED</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="log-textarea-wrap" id="drop-zone">
+          <textarea 
+            id="log-input" 
+            class="log-textarea" 
+            placeholder="Paste raw NetExec console or --log file output here (Ctrl+V) or drag and drop a .log / .txt file...&#10;&#10;Supports both interactive console output and NXC --log file logging:&#10;• File log format: 2026-09-29 15:55:07 | ssh.py:62 - INFO - SSH 10.100.150.100 22 ... [*] SSH-2.0-OpenSSH_10.3&#10;• SMB: SMB 192.168.0.1 445 DC01 [*] ... (name:DC01) (domain:CORP.LOCAL) (signing:True) (SMBv1:False)&#10;• LDAP: LDAP 192.168.0.1 389 DC01 [*] ... (name:DC01) (domain:CORP.LOCAL) (signing:True)&#10;• Pwn3d hits: SSH 10.100.150.133 22 10.100.150.133 [+] root:acme (Pwn3d!) Linux - Shell access!&#10;• Generic: Any protocol with (key:value) markers or standard NXC columns"
+            spellcheck="false"
+          ></textarea>
+          
+          <div class="drop-overlay" id="drop-overlay">
+            <span style="font-family:var(--font-mono); font-size:14px; font-weight:600; color:var(--acid);">[ DROP LOG FILE HERE ]</span>
+            <span class="al-label">Will parse and preview instantly</span>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="file" id="file-uploader" class="file-input-hidden" accept=".log,.txt,.out,*">
+            <button type="button" class="al-btn al-btn-ghost" id="btn-upload-file" style="padding: 7px 12px; font-size: 10px;">
+              UPLOAD FILE
+            </button>
+            <span class="al-label" style="color:var(--ash);">Shortcut: Focus anywhere and press <b>CTRL+V</b></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Panel: Telemetry & Summary -->
+      <div class="sidebar-panel">
+        
+        <div class="stat-card al-ticks">
+          <div class="stat-meta">
+            <span>PARSER TELEMETRY</span>
+            <span id="detected-type-tag" style="color:var(--acid);">IDLE</span>
+          </div>
+          <div class="stat-val highlight" id="record-count">0</div>
+          <div class="stat-meta">
+            <span id="line-count-meta">0 LINES PROCESSED</span>
+            <span id="col-count-meta">0 COLS</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="al-label" style="margin-bottom:6px;">QUICK EXPORT & CLIPBOARD</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <button type="button" class="al-btn al-btn-primary" id="btn-copy-csv" style="padding:9px 10px; font-size:10px;">
+              COPY CSV
+            </button>
+            <button type="button" class="al-btn al-btn-ghost" id="btn-copy-json" style="padding:9px 10px; font-size:10px;">
+              COPY JSON
+            </button>
+            <button type="button" class="al-btn" id="btn-copy-tsv" style="padding:9px 10px; font-size:10px;">
+              COPY TSV
+            </button>
+            <button type="button" class="al-btn" id="btn-download-csv" style="padding:9px 10px; font-size:10px;">
+              SAVE .CSV
+            </button>
+          </div>
+          <div class="al-label" style="color:var(--ash); font-size:9.5px; margin-top:4px;">
+            Shortcut: <b>CTRL+C</b> copies current view (or selected rows)
+          </div>
+        </div>
+
+        <div class="stat-card" id="flag-summary" style="display:none;">
+          <div class="al-label" style="color:var(--ash); margin-bottom:6px;">SECURITY & SCAN TELEMETRY</div>
+          <div class="al-leaders" id="flag-leaders">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Table Section: Live Preview -->
+    <div class="table-section al-ticks">
+      
+      <!-- Toolbar -->
+      <div class="toolbar-row">
+        <div class="toolbar-left">
+          <span class="card-title">LIVE PREVIEW TABLE</span>
+          <div style="width: 1px; height: 16px; background: var(--rule); margin: 0 4px;"></div>
+          <input 
+            type="text" 
+            id="table-search" 
+            class="search-input" 
+            placeholder="Filter records (IP, host, details...)"
+          >
+          <span class="al-label" id="table-filter-count" style="display:none;"></span>
+        </div>
+
+        <div class="toolbar-right">
+          <button type="button" class="al-btn al-btn-quiet" id="btn-select-all" style="padding:6px 10px; font-size:10px;">
+            SELECT ALL
+          </button>
+          <button type="button" class="al-btn al-btn-quiet" id="btn-clear-selection" style="padding:6px 10px; font-size:10px;">
+            CLEAR SELECTION
+          </button>
+          <button type="button" class="al-btn al-btn-ghost" id="btn-download-json" style="padding:6px 10px; font-size:10px;">
+            SAVE .JSON
+          </button>
+        </div>
+      </div>
+
+      <!-- Scrollable Table -->
+      <div class="tbl-scroll-wrap" id="table-container">
+        <table class="live-table" id="data-table">
+          <thead id="table-head">
+            <!-- Headers populated dynamically -->
+          </thead>
+          <tbody id="table-body">
+            <!-- Rows populated dynamically -->
+          </tbody>
+        </table>
+
+        <div class="empty-state" id="table-empty">
+          <div class="icon">⌗</div>
+          <div style="font-family:var(--font-mono); font-size:12px; letter-spacing:0.12em; text-transform:uppercase;">NO PARSED DATA TO PREVIEW</div>
+          <div class="al-label">Paste or drag-and-drop NetExec output to populate table in real time</div>
+        </div>
+      </div>
+
+      <div class="mrule"><i></i></div>
+    </div>
+
+  </main>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Client-side Logic -->
+  <script>
+    // State Store
+    const state = {
+      rawInput: '',
+      mode: 'auto', // 'auto', 'ldap', 'smb', 'service', 'forced'
+      detectedType: 'idle',
+      parsedRecords: [],
+      filteredRecords: [],
+      filterQuery: '',
+      selectedIndices: new Set(),
+      sortColumn: null,
+      sortDirection: 'asc'
+    };
+
+    // DOM References
+    const dom = {
+      logInput: document.getElementById('log-input'),
+      dropZone: document.getElementById('drop-zone'),
+      dropOverlay: document.getElementById('drop-overlay'),
+      fileUploader: document.getElementById('file-uploader'),
+      btnUploadFile: document.getElementById('btn-upload-file'),
+      modeSelector: document.getElementById('mode-selector'),
+      recordCount: document.getElementById('record-count'),
+      lineCountMeta: document.getElementById('line-count-meta'),
+      colCountMeta: document.getElementById('col-count-meta'),
+      detectedTypeTag: document.getElementById('detected-type-tag'),
+      btnLoadSampleSmb: document.getElementById('btn-load-sample-smb'),
+      btnLoadSampleSsh: document.getElementById('btn-load-sample-ssh'),
+      btnClear: document.getElementById('btn-clear'),
+      tableSearch: document.getElementById('table-search'),
+      tableFilterCount: document.getElementById('table-filter-count'),
+      btnSelectAll: document.getElementById('btn-select-all'),
+      btnClearSelection: document.getElementById('btn-clear-selection'),
+      btnCopyCsv: document.getElementById('btn-copy-csv'),
+      btnCopyJson: document.getElementById('btn-copy-json'),
+      btnCopyTsv: document.getElementById('btn-copy-tsv'),
+      btnDownloadCsv: document.getElementById('btn-download-csv'),
+      btnDownloadJson: document.getElementById('btn-download-json'),
+      tableHead: document.getElementById('table-head'),
+      tableBody: document.getElementById('table-body'),
+      tableEmpty: document.getElementById('table-empty'),
+      flagSummary: document.getElementById('flag-summary'),
+      flagLeaders: document.getElementById('flag-leaders'),
+      toastContainer: document.getElementById('toast-container')
+    };
+
+    // Samples
+    const SAMPLE_SMB = 
+`SMB         192.168.0.1      445    DC01             [*] Windows 10 / Server 2016 Build 14393 (name:DC01) (domain:CORP.LOCAL) (signing:True) (SMBv1:False) (Null Auth:False)
+SMB         192.168.0.2      445    FILESERVER       [*] Windows Server 2012 R2 Build 9600 (name:FILESERVER) (domain:CORP.LOCAL) (signing:False) (SMBv1:True) (Null Auth:True)
+SMB         192.168.0.3      445    BACKUP01         [*] Windows Server 2019 Build 17763 (name:BACKUP01) (domain:CORP.LOCAL) (signing:False) (SMBv1:False) (Null Auth:False)
+SMB         192.168.0.4      445    DEV-BOX          [*] Windows 10 Pro Build 19044 (name:DEV-BOX) (domain:CORP.LOCAL) (signing:False) (SMBv1:False) (Null Auth:False)
+SMB         192.168.0.5      445    NAS-STORAGE      [*] Windows Server 2008 R2 (name:NAS-STORAGE) (domain:WORKGROUP) (signing:False) (SMBv1:True) (Null Auth:True)
+`;
+
+    const SAMPLE_SSH_FILE_LOG = 
+`[2026-09-29 15:55:06]> /home/mandiant/.local/bin/nxc ssh preliminary_ssh.txt -u root -p acme --log prelim_ssh_nxc.log
+
+2026-09-29 15:55:07 | ssh.py:62 - INFO - SSH         10.100.150.100  22     10.100.150.100   [*] SSH-2.0-OpenSSH_10.3
+2026-09-29 15:55:07 | ssh.py:62 - INFO - SSH         10.100.150.107  22     10.100.150.107   [*] SSH-2.0-OpenSSH_9.4
+2026-09-29 15:55:08 | ssh.py:62 - INFO - SSH         10.100.150.136  22     10.100.150.136   [*] SSH-2.0-OpenSSH_9.2p1 Debian-2+deb12u2
+2026-09-29 15:55:11 | ssh.py:133 - INFO - SSH         10.100.150.100  22     10.100.150.100   [-] root:acme
+2026-09-29 15:55:18 | ssh.py:125 - INFO - SSH         10.100.150.133  22     10.100.150.133   [+] root:acme (Pwn3d!) Linux - Shell access!
+2026-09-29 15:55:18 | ssh.py:125 - INFO - SSH         10.100.150.136  22     10.100.150.136   [+] root:acme (Pwn3d!) Linux - Shell access!
+2026-09-29 15:55:22 | ssh.py:133 - INFO - SSH         10.100.150.106  22     10.100.150.106   [-] root:acme
+2026-09-29 15:55:22 | ssh.py:125 - INFO - SSH         10.100.150.155  22     10.100.150.155   [+] root:acme (Pwn3d!) Linux - Shell access!
+2026-09-29 15:55:23 | ssh.py:125 - INFO - SSH         10.100.150.101  22     10.100.150.101   [+] root:acme (Pwn3d!) Linux - Shell access!
+`;
+
+    // Show Toast
+    function showToast(message, duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerText = message;
+      dom.toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.2s';
+        setTimeout(() => toast.remove(), 250);
+      }, duration);
+    }
+
+    // Helper: Clean NetExec file logger prefixes
+    // Handles formats like:
+    // '2026-09-29 15:55:07 | ssh.py:62 - INFO - SSH ...'
+    // '2026-09-29 15:55:07.123 | module.py:10 - DEBUG - ...'
+    const NXC_FILE_LOGGER_REGEX = /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?\s*\|\s*[^|]+-\s*(?:INFO|DEBUG|WARNING|ERROR|CRITICAL)\s*-\s*(.*)$/;
+    
+    function cleanNxcLine(rawLine) {
+      const line = rawLine.trim();
+      if (!line) return '';
+      // Skip terminal command prompts e.g. [2026-09-29 15:55:06]> /path/to/nxc ...
+      if (line.startsWith('[') && line.includes(']> ')) return '';
+      
+      const m = line.match(NXC_FILE_LOGGER_REGEX);
+      return m ? m[1].trim() : line;
+    }
+
+    // --- Parser Engine ---
+
+    function detectLogTypeFromText(text) {
+      const lines = text.split('\n');
+      for (const rawLine of lines) {
+        const line = cleanNxcLine(rawLine);
+        if (!line) continue;
+        if (line.includes('SMB') && (line.includes('name:') || line.includes('signing:'))) return 'smb';
+        if (line.includes('LDAP') && (line.includes('name:') || line.includes('signing:'))) return 'ldap';
+      }
+      
+      // Check for service lines: SSH, FTP, WINRM, RDP, MSSQL, etc.
+      for (const rawLine of lines) {
+        const line = cleanNxcLine(rawLine);
+        if (!line) continue;
+        if (/^(?:SSH|FTP|WINRM|RDP|MSSQL|VNC|WMI|SNMP)\s+\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/i.test(line)) {
+          return 'service';
+        }
+      }
+
+      // Check if there are (key:value) pairs anywhere
+      for (const rawLine of lines) {
+        const line = cleanNxcLine(rawLine);
+        if (line && /\([^:]+:[^)]+\)/.test(line)) return 'forced';
+      }
+
+      return 'service';
+    }
+
+    function parseForcedLogData(text) {
+      const data = [];
+      const lines = text.split('\n');
+      const ipRegex = /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/;
+      const colRegex = /\(([^:]+):([^)]+)\)/g;
+
+      for (let rawLine of lines) {
+        let line = cleanNxcLine(rawLine);
+        if (!line) continue;
+
+        const ipMatch = line.match(ipRegex);
+        const ip = ipMatch ? ipMatch[0] : '';
+
+        const record = { 'IP': ip };
+
+        const parts = line.split(/\s+/);
+        if (parts.length > 0) {
+          record['Protocol'] = parts[0];
+        }
+
+        let match;
+        let foundCols = false;
+        while ((match = colRegex.exec(line)) !== null) {
+          foundCols = true;
+          const key = match[1].trim();
+          const val = match[2].trim();
+          record[key] = val;
+        }
+
+        if (foundCols) {
+          data.push(record);
+        }
+      }
+      return data;
+    }
+
+    function parseLdapLogData(text) {
+      const data = [];
+      const lines = text.split('\n');
+      const ipRegex = /\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/;
+      const hostnameRegex = /name:([^)]+)/;
+      const domainRegex = /domain:([^)]+)/;
+      const signingRegex = /signing:([^)]+)/;
+      const bindingRegex = /channel binding:([^)]+)/;
+
+      for (let rawLine of lines) {
+        let line = cleanNxcLine(rawLine);
+        if (!line) continue;
+
+        if (line.includes('LDAP') && line.includes('name:')) {
+          const ipMatch = line.match(ipRegex);
+          const ip = ipMatch ? ipMatch[0] : '';
+
+          const hostnameMatch = line.match(hostnameRegex);
+          const hostname = hostnameMatch ? hostnameMatch[1].trim() : '';
+
+          const domainMatch = line.match(domainRegex);
+          const domain = domainMatch ? domainMatch[1].trim() : '';
+
+          const fqdn = domain ? `${hostname}.${domain.toLowerCase()}` : hostname;
+
+          const signingMatch = line.match(signingRegex);
+          const signing = signingMatch ? signingMatch[1].trim() : '';
+
+          const bindingMatch = line.match(bindingRegex);
+          const binding = bindingMatch ? bindingMatch[1].trim() : '';
+
+          data.push({
+            'IP': ip,
+            'Hostname': hostname,
+            'Domain': domain,
+            'FQDN': fqdn,
+            'LDAP Signing': signing,
+            'LDAP Channel Binding': binding
+          });
+        }
+      }
+      return data;
+    }
+
+    function parseSmbLogData(text) {
+      const data = [];
+      const lines = text.split('\n');
+      const hostnameRegex = /name:([^)]+)/;
+      const domainRegex = /domain:([^)]+)/;
+      const signingRegex = /signing:([^)]+)/;
+      const smbv1Regex = /SMBv1:([^)]+)/;
+      const nullAuthRegex = /Null Auth:([^)]+)/;
+
+      for (let rawLine of lines) {
+        let line = cleanNxcLine(rawLine);
+        if (!line) continue;
+
+        if (line.includes('SMB') && line.includes('name:')) {
+          const parts = line.split(/\s+/);
+          const ip = parts.length > 1 ? parts[1] : '';
+
+          const hostnameMatch = line.match(hostnameRegex);
+          const hostname = hostnameMatch ? hostnameMatch[1].trim() : '';
+
+          const domainMatch = line.match(domainRegex);
+          const domain = domainMatch ? domainMatch[1].trim() : '';
+
+          const fqdn = domain ? `${hostname}.${domain.toLowerCase()}` : hostname;
+
+          const signingMatch = line.match(signingRegex);
+          const signing = signingMatch ? signingMatch[1].trim() : '';
+
+          const smbv1Match = line.match(smbv1Regex);
+          const smbv1 = smbv1Match ? smbv1Match[1].trim() : '';
+
+          const nullAuthMatch = line.match(nullAuthRegex);
+          const nullAuth = nullAuthMatch ? nullAuthMatch[1].trim() : '';
+
+          data.push({
+            'IP': ip,
+            'Hostname': hostname,
+            'Domain': domain,
+            'FQDN': fqdn,
+            'SMB Signing': signing,
+            'SMBv1': smbv1,
+            'Null Auth': nullAuth
+          });
+        }
+      }
+      return data;
+    }
+
+    // Comprehensive NetExec Service Scanner Parser (SSH, FTP, WINRM, RDP, MSSQL, VNC, etc.)
+    function parseServiceLogData(text) {
+      const data = [];
+      const lines = text.split('\n');
+      // Matches: PROTOCOL IP PORT TARGET [STATUS_MARKER] DETAILS
+      const serviceRegex = /^([A-Za-z0-9_\-]+)\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(\d+)\s+(\S+)\s+(\[\*\]|\[\+\]|\[\-\]|\[\!\])\s*(.*)$/;
+      const colRegex = /\(([^:]+):([^)]+)\)/g;
+
+      for (let rawLine of lines) {
+        let line = cleanNxcLine(rawLine);
+        if (!line) continue;
+
+        const match = line.match(serviceRegex);
+        if (match) {
+          const [, proto, ip, port, target, statusTag, details] = match;
+          
+          let statusText = 'INFO';
+          if (statusTag === '[+]') statusText = 'SUCCESS';
+          else if (statusTag === '[-]') statusText = 'FAILED';
+          else if (statusTag === '[!]') statusText = 'WARNING';
+
+          const record = {
+            'IP': ip,
+            'Port': port,
+            'Protocol': proto,
+            'Target': target,
+            'Status': statusTag,
+            'Pwn3d': details.includes('(Pwn3d!)') ? 'True' : 'False',
+            'Details': details
+          };
+
+          // Also extract any dynamic (k:v) tags inside details
+          let colMatch;
+          while ((colMatch = colRegex.exec(details)) !== null) {
+            const key = colMatch[1].trim();
+            const val = colMatch[2].trim();
+            if (key.toLowerCase() !== 'pwn3d!') {
+              record[key] = val;
+            }
+          }
+
+          data.push(record);
+        } else {
+          // If line doesn't match standard service regex but has IP and protocol
+          const ipMatch = line.match(/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/);
+          if (ipMatch) {
+            const parts = line.split(/\s+/);
+            const proto = parts[0] || 'NXC';
+            data.push({
+              'IP': ipMatch[0],
+              'Protocol': proto,
+              'Details': line
+            });
+          }
+        }
+      }
+      return data;
+    }
+
+    // Execute Parse Pipeline
+    function runParser() {
+      const text = dom.logInput.value;
+      state.rawInput = text;
+      state.selectedIndices.clear();
+
+      if (!text.trim()) {
+        state.parsedRecords = [];
+        state.filteredRecords = [];
+        state.detectedType = 'idle';
+        render();
+        return;
+      }
+
+      let activeType = state.mode;
+      if (activeType === 'auto') {
+        activeType = detectLogTypeFromText(text);
+      }
+      state.detectedType = activeType;
+
+      if (activeType === 'ldap') {
+        state.parsedRecords = parseLdapLogData(text);
+        if (state.parsedRecords.length === 0 && state.mode === 'auto') {
+          state.parsedRecords = parseForcedLogData(text);
+          state.detectedType = 'forced';
+        }
+      } else if (activeType === 'smb') {
+        state.parsedRecords = parseSmbLogData(text);
+        if (state.parsedRecords.length === 0 && state.mode === 'auto') {
+          state.parsedRecords = parseForcedLogData(text);
+          state.detectedType = 'forced';
+        }
+      } else if (activeType === 'service') {
+        state.parsedRecords = parseServiceLogData(text);
+      } else {
+        // forced / generic
+        state.parsedRecords = parseForcedLogData(text);
+      }
+
+      applyFilterAndSort();
+      render();
+    }
+
+    // Filter & Sort
+    function applyFilterAndSort() {
+      const q = state.filterQuery.trim().toLowerCase();
+      if (!q) {
+        state.filteredRecords = [...state.parsedRecords];
+      } else {
+        state.filteredRecords = state.parsedRecords.filter(row => {
+          return Object.values(row).some(val => 
+            String(val).toLowerCase().includes(q)
+          );
+        });
+      }
+
+      // Sort
+      if (state.sortColumn) {
+        const col = state.sortColumn;
+        const dir = state.sortDirection === 'asc' ? 1 : -1;
+        state.filteredRecords.sort((a, b) => {
+          const valA = a[col] || '';
+          const valB = b[col] || '';
+          return valA.localeCompare(valB, undefined, { numeric: true }) * dir;
+        });
+      }
+    }
+
+    // Extract all unique headers preserving order
+    function getColumns(records) {
+      const fieldnames = [];
+      const seen = new Set();
+      for (const row of records) {
+        for (const k of Object.keys(row)) {
+          if (!seen.has(k)) {
+            fieldnames.push(k);
+            seen.add(k);
+          }
+        }
+      }
+      return fieldnames;
+    }
+
+    // Render Table and UI
+    function render() {
+      const lines = state.rawInput ? state.rawInput.split('\n').filter(l => l.trim().length > 0).length : 0;
+      const count = state.parsedRecords.length;
+      const columns = getColumns(state.parsedRecords);
+
+      // Telemetry tags
+      dom.recordCount.textContent = count;
+      dom.lineCountMeta.textContent = `${lines} LINES PROCESSED`;
+      dom.colCountMeta.textContent = `${columns.length} COLS`;
+      dom.detectedTypeTag.textContent = state.detectedType.toUpperCase();
+
+      if (state.filterQuery) {
+        dom.tableFilterCount.style.display = 'inline-block';
+        dom.tableFilterCount.textContent = `MATCHING: ${state.filteredRecords.length} / ${count}`;
+      } else {
+        dom.tableFilterCount.style.display = 'none';
+      }
+
+      // Render Telemetry / Security Summary
+      renderSecuritySummary();
+
+      // Render Table
+      if (state.filteredRecords.length === 0) {
+        dom.tableHead.innerHTML = '';
+        dom.tableBody.innerHTML = '';
+        dom.tableEmpty.style.display = 'flex';
+        return;
+      }
+
+      dom.tableEmpty.style.display = 'none';
+
+      // Table Headers
+      let thHtml = '<tr><th style="width:44px;" class="idx-col">#</th>';
+      for (const col of columns) {
+        let sortClass = '';
+        if (state.sortColumn === col) {
+          sortClass = state.sortDirection === 'asc' ? 'sort-asc' : 'sort-desc';
+        }
+        thHtml += `<th class="${sortClass}" data-col="${col}">${escapeHtml(col)}</th>`;
+      }
+      thHtml += '</tr>';
+      dom.tableHead.innerHTML = thHtml;
+
+      // Table Rows
+      let trHtml = '';
+      state.filteredRecords.forEach((row, idx) => {
+        const isSelected = state.selectedIndices.has(idx);
+        trHtml += `<tr class="${isSelected ? 'selected' : ''}" data-idx="${idx}">`;
+        trHtml += `<td class="idx-col">${idx + 1}</td>`;
+        for (const col of columns) {
+          const val = row[col] !== undefined ? row[col] : '';
+          const cellClass = getCellHighlightClass(col, val);
+          trHtml += `<td class="${cellClass}">${escapeHtml(val)}</td>`;
+        }
+        trHtml += '</tr>';
+      });
+      dom.tableBody.innerHTML = trHtml;
+    }
+
+    // Cell styling helper based on pentesting flags
+    function getCellHighlightClass(col, val) {
+      const lowerCol = col.toLowerCase();
+      const lowerVal = String(val).toLowerCase();
+
+      if (lowerCol === 'status') {
+        if (lowerVal === '[+]') return 'val-ok';
+        if (lowerVal === '[-]') return 'val-danger';
+        if (lowerVal === '[!]') return 'val-warn';
+        return 'val-acid';
+      }
+      if (lowerCol === 'pwn3d') {
+        if (lowerVal === 'true') return 'val-pwn3d';
+        return '';
+      }
+      if (lowerCol.includes('signing')) {
+        if (lowerVal === 'false') return 'val-danger'; // Signing False is vulnerable / relay target
+        if (lowerVal === 'true') return 'val-ok';
+      }
+      if (lowerCol.includes('smbv1')) {
+        if (lowerVal === 'true') return 'val-danger'; // SMBv1 True is high risk
+        if (lowerVal === 'false') return 'val-ok';
+      }
+      if (lowerCol.includes('null auth')) {
+        if (lowerVal === 'true') return 'val-danger'; // Null Auth True is accessible
+        if (lowerVal === 'false') return 'val-ok';
+      }
+      if (lowerCol.includes('channel binding')) {
+        if (lowerVal === 'false') return 'val-warn';
+        if (lowerVal === 'true') return 'val-ok';
+      }
+      if (lowerCol === 'ip') {
+        return 'val-acid';
+      }
+      return '';
+    }
+
+    // Security & scan summary widget
+    function renderSecuritySummary() {
+      if (state.parsedRecords.length === 0) {
+        dom.flagSummary.style.display = 'none';
+        return;
+      }
+
+      let signingFalse = 0;
+      let smbv1True = 0;
+      let nullAuthTrue = 0;
+      let pwn3dCount = 0;
+      let authSuccessCount = 0;
+      let authFailCount = 0;
+      let hasApplicableFlags = false;
+
+      state.parsedRecords.forEach(r => {
+        if (r['SMB Signing'] === 'False' || r['LDAP Signing'] === 'False') { signingFalse++; hasApplicableFlags = true; }
+        if (r['SMBv1'] === 'True') { smbv1True++; hasApplicableFlags = true; }
+        if (r['Null Auth'] === 'True') { nullAuthTrue++; hasApplicableFlags = true; }
+        if (r['Pwn3d'] === 'True' || (r['Details'] && r['Details'].includes('(Pwn3d!)'))) { pwn3dCount++; hasApplicableFlags = true; }
+        if (r['Status'] === '[+]') { authSuccessCount++; hasApplicableFlags = true; }
+        if (r['Status'] === '[-]') { authFailCount++; hasApplicableFlags = true; }
+      });
+
+      if (!hasApplicableFlags) {
+        dom.flagSummary.style.display = 'none';
+        return;
+      }
+
+      dom.flagSummary.style.display = 'grid';
+      let html = '';
+      if (pwn3dCount > 0) {
+        html += `<div><dt>PWN3D HOSTS (PWN3D!):</dt><i></i><dd style="color:var(--status-ok); font-weight:700;">${pwn3dCount}</dd></div>`;
+      }
+      if (authSuccessCount > 0) {
+        html += `<div><dt>VALID CREDENTIALS [+]:</dt><i></i><dd style="color:var(--status-ok); font-weight:600;">${authSuccessCount}</dd></div>`;
+      }
+      if (authFailCount > 0) {
+        html += `<div><dt>FAILED ATTEMPTS [-]:</dt><i></i><dd style="color:var(--ash);">${authFailCount}</dd></div>`;
+      }
+      if (signingFalse > 0) {
+        html += `<div><dt>SIGNING DISABLED (RELAY):</dt><i></i><dd style="color:var(--status-down); font-weight:600;">${signingFalse}</dd></div>`;
+      }
+      if (smbv1True > 0) {
+        html += `<div><dt>SMBv1 ENABLED:</dt><i></i><dd style="color:var(--status-down); font-weight:600;">${smbv1True}</dd></div>`;
+      }
+      if (nullAuthTrue > 0) {
+        html += `<div><dt>NULL SESSIONS / AUTH:</dt><i></i><dd style="color:var(--status-warn); font-weight:600;">${nullAuthTrue}</dd></div>`;
+      }
+
+      dom.flagLeaders.innerHTML = html;
+    }
+
+    // HTML escape helper
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // --- Export Generators ---
+
+    function getTargetDataset() {
+      // If rows are selected, only export selected rows. Otherwise export all filtered rows.
+      if (state.selectedIndices.size > 0) {
+        return state.filteredRecords.filter((_, idx) => state.selectedIndices.has(idx));
+      }
+      return state.filteredRecords;
+    }
+
+    function generateCsv(data, delimiter = ',') {
+      if (!data || data.length === 0) return '';
+      const cols = getColumns(data);
+      const rows = [];
+
+      // Header row
+      rows.push(cols.map(c => `"${c.replace(/"/g, '""')}"`).join(delimiter));
+
+      // Data rows
+      for (const row of data) {
+        const values = cols.map(c => {
+          const val = row[c] !== undefined ? String(row[c]) : '';
+          return `"${val.replace(/"/g, '""')}"`;
+        });
+        rows.push(values.join(delimiter));
+      }
+      return rows.join('\r\n');
+    }
+
+    function generateJson(data) {
+      return JSON.stringify(data, null, 2);
+    }
+
+    // Copy to clipboard
+    async function copyToClipboard(text, description) {
+      if (!text) {
+        showToast('Nothing to copy (empty dataset)');
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(`Copied ${description} to clipboard!`);
+      } catch (err) {
+        // Fallback for non-https or older browser permissions
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast(`Copied ${description} to clipboard!`);
+      }
+    }
+
+    // File download trigger
+    function downloadFile(content, fileName, mimeType) {
+      if (!content) {
+        showToast('Cannot download empty file');
+        return;
+      }
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`Saved ${fileName}`);
+    }
+
+    // --- Event Listeners & Interactive Handlers ---
+
+    // Real-time live preview input listener
+    dom.logInput.addEventListener('input', () => {
+      runParser();
+    });
+
+    // Mode Selector Segmented Controls
+    dom.modeSelector.addEventListener('click', (e) => {
+      const btn = e.target.closest('.seg-btn');
+      if (!btn) return;
+      dom.modeSelector.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.mode = btn.dataset.mode;
+      runParser();
+      showToast(`Parser mode set to: ${state.mode.toUpperCase()}`);
+    });
+
+    // Search / Filter
+    dom.tableSearch.addEventListener('input', (e) => {
+      state.filterQuery = e.target.value;
+      state.selectedIndices.clear();
+      applyFilterAndSort();
+      render();
+    });
+
+    // Table Header Sorting
+    dom.tableHead.addEventListener('click', (e) => {
+      const th = e.target.closest('th');
+      if (!th || !th.dataset.col) return;
+      const col = th.dataset.col;
+      if (state.sortColumn === col) {
+        state.sortDirection = state.sortDirection === 'asc' ? 'desc' : 'asc';
+      } else {
+        state.sortColumn = col;
+        state.sortDirection = 'asc';
+      }
+      applyFilterAndSort();
+      render();
+    });
+
+    // Table Row Selection
+    dom.tableBody.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const idx = parseInt(tr.dataset.idx, 10);
+      if (isNaN(idx)) return;
+
+      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+        // Toggle single row in multi-selection
+        if (state.selectedIndices.has(idx)) {
+          state.selectedIndices.delete(idx);
+        } else {
+          state.selectedIndices.add(idx);
+        }
+      } else {
+        // Single row toggle
+        if (state.selectedIndices.has(idx) && state.selectedIndices.size === 1) {
+          state.selectedIndices.clear();
+        } else {
+          state.selectedIndices.clear();
+          state.selectedIndices.add(idx);
+        }
+      }
+      render();
+    });
+
+    // Selection Controls
+    dom.btnSelectAll.addEventListener('click', () => {
+      state.selectedIndices = new Set(state.filteredRecords.map((_, i) => i));
+      render();
+      showToast(`Selected all ${state.filteredRecords.length} records`);
+    });
+
+    dom.btnClearSelection.addEventListener('click', () => {
+      state.selectedIndices.clear();
+      render();
+      showToast('Cleared selection');
+    });
+
+    // Sample data loaders
+    dom.btnLoadSampleSmb.addEventListener('click', () => {
+      dom.logInput.value = SAMPLE_SMB;
+      runParser();
+      showToast('Loaded sample NetExec SMB scan');
+    });
+
+    dom.btnLoadSampleSsh.addEventListener('click', () => {
+      dom.logInput.value = SAMPLE_SSH_FILE_LOG;
+      runParser();
+      showToast('Loaded sample NetExec file output scan (SSH / Pwn3d!)');
+    });
+
+    // Clear all
+    dom.btnClear.addEventListener('click', () => {
+      dom.logInput.value = '';
+      dom.tableSearch.value = '';
+      state.filterQuery = '';
+      state.sortColumn = null;
+      runParser();
+      showToast('Cleared workspace');
+    });
+
+    // Export Buttons
+    dom.btnCopyCsv.addEventListener('click', () => {
+      const dataset = getTargetDataset();
+      const csv = generateCsv(dataset, ',');
+      const desc = state.selectedIndices.size > 0 ? `${dataset.length} selected rows (CSV)` : 'all rows (CSV)';
+      copyToClipboard(csv, desc);
+    });
+
+    dom.btnCopyJson.addEventListener('click', () => {
+      const dataset = getTargetDataset();
+      const json = generateJson(dataset);
+      const desc = state.selectedIndices.size > 0 ? `${dataset.length} selected rows (JSON)` : 'all rows (JSON)';
+      copyToClipboard(json, desc);
+    });
+
+    dom.btnCopyTsv.addEventListener('click', () => {
+      const dataset = getTargetDataset();
+      const tsv = generateCsv(dataset, '\t');
+      const desc = state.selectedIndices.size > 0 ? `${dataset.length} selected rows (TSV for Excel)` : 'all rows (TSV for Excel)';
+      copyToClipboard(tsv, desc);
+    });
+
+    dom.btnDownloadCsv.addEventListener('click', () => {
+      const dataset = getTargetDataset();
+      const csv = generateCsv(dataset, ',');
+      const fname = `netexec_parsed_${state.detectedType}_${Date.now()}.csv`;
+      downloadFile(csv, fname, 'text/csv');
+    });
+
+    dom.btnDownloadJson.addEventListener('click', () => {
+      const dataset = getTargetDataset();
+      const json = generateJson(dataset);
+      const fname = `netexec_parsed_${state.detectedType}_${Date.now()}.json`;
+      downloadFile(json, fname, 'application/json');
+    });
+
+    // File Upload handling
+    dom.btnUploadFile.addEventListener('click', () => {
+      dom.fileUploader.click();
+    });
+
+    dom.fileUploader.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      readFileContent(file);
+    });
+
+    function readFileContent(file) {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        dom.logInput.value = evt.target.result;
+        runParser();
+        showToast(`Loaded ${file.name} (${file.size} bytes)`);
+      };
+      reader.readAsText(file);
+    }
+
+    // Drag and Drop File handling
+    ['dragenter', 'dragover'].forEach(eventName => {
+      window.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dom.dropOverlay.classList.add('active');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      window.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        dom.dropOverlay.classList.remove('active');
+      });
+    });
+
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dom.dropOverlay.classList.remove('active');
+      if (e.dataTransfer && e.dataTransfer.files.length > 0) {
+        readFileContent(e.dataTransfer.files[0]);
+      }
+    });
+
+    // --- Global Keyboard Shortcuts: CTRL+V / CTRL+C Support ---
+    window.addEventListener('keydown', (e) => {
+      // Check for CTRL+C / CMD+C
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+        // If user is focused on an input/textarea and has selected text there, let browser handle normal text copy
+        const activeEl = document.activeElement;
+        if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT')) {
+          if (activeEl.selectionStart !== activeEl.selectionEnd) {
+            return; // normal native copy inside input
+          }
+        }
+
+        // If table has data or selection, copy CSV / TSV to clipboard
+        if (state.parsedRecords.length > 0) {
+          e.preventDefault();
+          const dataset = getTargetDataset();
+          const tsv = generateCsv(dataset, '\t'); // TSV is standard for clipboard table pasting into Excel/Notepad
+          const label = state.selectedIndices.size > 0 ? `${dataset.length} selected records` : `${dataset.length} records`;
+          copyToClipboard(tsv, `${label} (TSV)`);
+        }
+      }
+
+      // Check for CTRL+V / CMD+V when NOT in an input/textarea
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+        const activeEl = document.activeElement;
+        if (!activeEl || (activeEl.tagName !== 'TEXTAREA' && activeEl.tagName !== 'INPUT')) {
+          // Focus textarea so paste goes directly into log input
+          dom.logInput.focus();
+        }
+      }
+    });
+
+    // Handle global paste event when user is not focused on an input
+    window.addEventListener('paste', (e) => {
+      const activeEl = document.activeElement;
+      if (!activeEl || (activeEl.tagName !== 'TEXTAREA' && activeEl.tagName !== 'INPUT')) {
+        const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+        if (pastedText) {
+          dom.logInput.value = pastedText;
+          runParser();
+          showToast(`Pasted ${pastedText.split('\n').length} lines via Ctrl+V`);
+        }
+      }
+    });
+
+    // Initial check
+    runParser();
+  </script>
+</body>
+</html>
