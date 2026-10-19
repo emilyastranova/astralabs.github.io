@@ -238,9 +238,10 @@
     const TUBE = hard([{ opacity: 0 }, { opacity: .85, offset: .08 }, { opacity: 0, offset: .12 }, { opacity: 0, offset: .3 }, { opacity: .5, offset: .33 }, { opacity: .1, offset: .36 }, { opacity: 1, offset: .52 }, { opacity: .35, offset: .55 }, { opacity: 1, offset: .6 }, { opacity: 1 }]);
 
     /* ================= DOT FIELD =================
-       14px grid, a little brighter toward the centre. Ignition: the unlit grid holds, then a ring
-       expands from the centre of the screen and lights the dots acid as it passes. Idle (Sea): the dots never move;
-       their grey rises and falls about 14% with a slow height field, like ocean swell from above. */
+       14px grid, a little brighter toward the center. Ignition: the unlit grid holds, then a ring
+       expands from the center of the screen and lights the dots acid as it passes. Idle (Sea): the dots never move;
+       their gray rises and falls about 14% with a slow height field, like ocean swell from above.
+       Once idle, a click re-ignites a ring from that point, and a soft lens of brighter dots follows the mouse. */
     const field = $('#field'), fx = field.getContext('2d');
     let W = 0, H = 0, dpr = 1;
     const sizeField = () => { dpr = devicePixelRatio || 1; W = innerWidth; H = innerHeight; field.width = Math.round(W * dpr); field.height = Math.round(H * dpr); };
@@ -262,22 +263,51 @@
     const SEA = [[620, 18, 9, .34], [430, 112, 7, .26], [300, 205, 11, .2], [760, 290, 6, .2]]
       .map(([l, deg, v, w], i) => { const a = deg * Math.PI / 180; return { kx: Math.cos(a) * 2 * Math.PI / l, ky: Math.sin(a) * 2 * Math.PI / l, w: v * 2 * Math.PI / l, a: w, p: i * 1.7 }; });
     const sea = { ramp: 0, running: false, t0: performance.now() };
+    const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+    // Click anywhere: a ring ignites from that point and runs out across the live field.
+    const PULSE_DUR = 1300, pulses = [];
+    // Pointer lens: dots near the mouse lift a little brighter and larger. It trails the pointer and fades in and out.
+    const LENS_R = 84, lens = { x: 0, y: 0, tx: 0, ty: 0, k: 0, on: false };
+
     function drawSea(now) {
       const t = (now - sea.t0) / 1000, amp = .14 * sea.ramp;
       fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
       const [cx, cy] = origin(), max = reach(cx, cy);
+      for (let i = pulses.length - 1; i >= 0; i--) { const p = pulses[i], q = (now - p.t0) / PULSE_DUR; if (q >= 1) pulses.splice(i, 1); else p.r = p.max * easeIO(Math.max(0, q)); }
+      const lk = lens.k;
       for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+        let ring = 0;
+        for (const p of pulses) ring = Math.max(ring, 1 - Math.abs(Math.hypot(gx - p.x, gy - p.y) - p.r) / 22);
+        if (ring > .05) { fx.fillStyle = `rgba(182,255,46,${(.3 + ring * .7).toFixed(3)})`; fx.fillRect(gx - .75, gy - .75, 1.5, 1.5); continue; }
         let h = 0; for (const w of SEA) h += w.a * Math.sin(gx * w.kx + gy * w.ky - t * w.w + w.p);
-        const rest = .12 + Math.max(0, 1 - Math.hypot(gx - cx, gy - cy) / max) * .2;
-        fx.fillStyle = `rgba(237,230,225,${Math.max(.04, rest + h * amp).toFixed(3)})`;
-        fx.fillRect(gx - .75, gy - .75, 1.5, 1.5);
+        let a = .12 + Math.max(0, 1 - Math.hypot(gx - cx, gy - cy) / max) * .2 + h * amp, sz = 1.5;
+        if (lk > .01) { const d = Math.hypot(gx - lens.x, gy - lens.y); if (d < LENS_R) { const f = 1 - d / LENS_R, ff = f * f * (3 - 2 * f) * lk; a += ff * .16; sz += ff * .45; } }
+        fx.fillStyle = `rgba(237,230,225,${Math.max(.04, a).toFixed(3)})`;
+        fx.fillRect(gx - sz / 2, gy - sz / 2, sz, sz);
       }
     }
     function seaLoop(now) {
       if (!sea.running) return;
       if (sea.ramp < 1) sea.ramp = Math.min(1, sea.ramp + 1 / 120);  // ramps in over about 2s
+      lens.x += (lens.tx - lens.x) * .16; lens.y += (lens.ty - lens.y) * .16;
+      lens.k += ((lens.on ? 1 : 0) - lens.k) * .08;
       if (!document.hidden) drawSea(now);
       requestAnimationFrame(seaLoop);
+    }
+    if (!reduce) {
+      addEventListener('pointerdown', e => {
+        if (!sea.running || e.button > 0) return;
+        if (pulses.length >= 4) pulses.shift();
+        pulses.push({ x: e.clientX, y: e.clientY, t0: performance.now(), r: 0, max: reach(e.clientX, e.clientY) });
+      });
+      addEventListener('pointermove', e => {
+        if (e.pointerType !== 'mouse') return;
+        if (!lens.on && lens.k < .01) { lens.x = e.clientX; lens.y = e.clientY; }  // appear where the pointer is, not slide in from the last spot
+        lens.tx = e.clientX; lens.ty = e.clientY; lens.on = true;
+      });
+      document.documentElement.addEventListener('pointerleave', () => { lens.on = false; });
+      addEventListener('blur', () => { lens.on = false; });
     }
     const startSea = () => { if (reduce) { sea.ramp = 0; drawSea(performance.now()); return; } if (!sea.running) { sea.running = true; requestAnimationFrame(seaLoop); } };
 
@@ -286,8 +316,7 @@
         const t0 = performance.now(), HOLD = 450, DUR = 1300;
         const f = () => {
           const t = Math.min(1, Math.max(0, (performance.now() - t0 - HOLD) / DUR));
-          const e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-          drawIgnition(Math.max(.0001, e));
+          drawIgnition(Math.max(.0001, easeIO(t)));
           if (t >= 1) { done(); return; }
           requestAnimationFrame(f);
         };
