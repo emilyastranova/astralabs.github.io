@@ -1,0 +1,1194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0909">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="How AstraLabs moves: speeds and easing, the reboot intro, the dot field, the idle glitch and motion concepts.">
+<link rel="canonical" href="https://astralabs.dev/design/motion-lab/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AstraLabs">
+<meta property="og:url" content="https://astralabs.dev/design/motion-lab/">
+<meta property="og:title" content="AstraLabs Motion Lab">
+<meta property="og:description" content="How AstraLabs moves: speeds and easing, the reboot intro, the dot field, the idle glitch and motion concepts.">
+<meta property="og:image" content="https://astralabs.dev/images/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://astralabs.dev/images/og.png">
+<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+<title>AstraLabs Motion Lab</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap">
+<style>
+/* Layout: storyboard (16:9 stage + shot list + timeline), then the motion profiles plotted on dot grids, then a contact sheet of concepts. Line markers and masked dot grids carry the detail. Dark-only by design. */
+:root {
+  color-scheme: dark;
+  --void: #0a0909; --plate: #131212; --rule: #2c2a29; --rule-subtle: #1c1b1a;
+  --mark: #ffffff; --bone: #ede6e1; --ash: #8e8380; --acid: #b6ff2e; --acid-hi: #ccff6b; --on-acid: #0a0909; --down: #ff2e3a; --ok: #4dff88; --warn: #ffa21f;
+  --dot: color-mix(in oklab, var(--bone) 22%, transparent);
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, Menlo, monospace;
+  --gutter: clamp(16px, 4vw, 48px);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scrollbar-color: var(--rule) var(--void); }
+body { background: var(--void); color: var(--bone); font-family: var(--font-display); font-size: 15px; line-height: 1.55; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 65ch; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+.label { font-family: var(--font-mono); font-size: 10.5px; line-height: 1.3; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-variation-settings: "wdth" 85; color: var(--ash); }
+.label b { color: var(--acid); font-weight: 500; }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: var(--gutter); padding-block: 40px 120px; display: grid; gap: 88px; }
+.intro { display: grid; gap: 16px; }
+.intro h1 { font: 900 clamp(38px, 6vw, 72px)/.9 var(--font-display); font-variation-settings: "wdth" 118; text-transform: uppercase; color: var(--mark); letter-spacing: -.01em; }
+.intro p { color: var(--ash); font-size: 16px; }
+.intro strong { color: var(--bone); font-weight: 600; }
+.sec-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.sec-head .t { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
+.sec-head h2 { font: 800 22px/1.15 var(--font-display); font-variation-settings: "wdth" 110; text-transform: uppercase; letter-spacing: .02em; }
+.sec-head p { color: var(--ash); font-size: 14px; }
+.mrule { position: relative; height: 9px; border-bottom: 1px solid var(--rule); }
+.mrule::before, .mrule::after { content: ""; position: absolute; bottom: -1px; width: 1px; height: 9px; background: var(--ash); }
+.mrule::before { left: 0; } .mrule::after { right: 0; }
+.mrule i { position: absolute; left: 0; bottom: -1px; width: 32px; height: 2px; background: var(--acid); }
+.dots { background-image: radial-gradient(circle at center, var(--dot) 0 1px, transparent 1.4px); background-size: 16px 16px; background-position: 8px 8px; }
+.dots.fade { -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 50%, #000 35%, transparent 100%); mask-image: radial-gradient(ellipse 70% 65% at 50% 50%, #000 35%, transparent 100%); }
+.ticks { --tk: var(--bone); --tl: 8px; background:
+  linear-gradient(var(--tk), var(--tk)) top left / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) top left / 1px var(--tl) no-repeat,
+  linear-gradient(var(--tk), var(--tk)) top right / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) top right / 1px var(--tl) no-repeat,
+  linear-gradient(var(--tk), var(--tk)) bottom left / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) bottom left / 1px var(--tl) no-repeat,
+  linear-gradient(var(--tk), var(--tk)) bottom right / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) bottom right / 1px var(--tl) no-repeat; }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 10.5px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; font-variation-settings: "wdth" 85; padding: 10px 14px; border: 1px solid var(--rule); cursor: pointer; background: transparent; color: var(--ash); white-space: nowrap; transition: color 40ms steps(1), border-color 40ms steps(1); }
+.btn:hover { color: var(--bone); border-color: var(--bone); }
+.btn-primary { --cut: 9px; background: var(--acid); border-color: var(--acid); color: var(--on-acid); clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% calc(var(--cut) * 1.732), 100% 100%, 0 100%); padding-right: 22px; }
+.btn-primary:hover { background: var(--acid-hi); border-color: var(--acid-hi); color: var(--on-acid); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); background: transparent; padding: 6px 9px; font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); cursor: pointer; font-variation-settings: "wdth" 85; }
+.chip[aria-pressed="true"] { border-color: var(--acid); color: var(--bone); }
+.chip span { color: var(--acid); margin-left: 4px; }
+
+/* brand atoms */
+.mk { display: block; color: var(--mark); overflow: visible; flex: none; }
+.mk .ol path { fill: none; stroke: var(--bone); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-dasharray: 1; opacity: 0; }
+.mk .fl path { fill: currentColor; }
+.wm { display: inline-flex; align-items: baseline; font-family: var(--font-mono); font-weight: 300; font-variation-settings: "wdth" 112.5; text-transform: uppercase; line-height: 1; color: var(--mark); white-space: nowrap; }
+.wm .in { letter-spacing: .36em; }
+.wm .br, .wm .sl { color: var(--acid); }
+.wm .br { display: inline-block; }
+.wm .lb { margin-right: .5em; } .wm .rb { margin-left: .14em; }
+.wm .sl { display: inline-block; min-width: .62em; text-align: center; font-style: normal; }
+.wm .cur { display: inline-block; width: .6em; height: 1em; background: var(--acid); vertical-align: -.12em; margin-right: .36em; }
+.lock { display: inline-flex; align-items: center; gap: .42em; line-height: 1; }
+.lock .mk { height: 1.05em; width: auto; }
+.lock .wm { font-size: .56em; }
+.reg { position: absolute; width: 18px; height: 18px; }
+.reg::before, .reg::after { content: ""; position: absolute; background: var(--acid); }
+.reg::before { left: 50%; top: 0; width: 1px; height: 100%; } .reg::after { top: 50%; left: 0; height: 1px; width: 100%; }
+.gw { position: relative; display: inline-block; }
+.gw .g { position: absolute; inset: 0; opacity: 0; pointer-events: none; }
+.gw .g.k { color: var(--acid); } .gw .g.n { color: var(--bone); }
+.gw .g .mk, .gw .g .wm, .gw .g .wm .br, .gw .g .wm .sl { color: inherit; }
+.gw.glitching .g { opacity: 1; }
+.gw.glitching .g.k { clip-path: inset(var(--t1) 0 var(--b1) 0); transform: translateX(var(--x1)); }
+.gw.glitching .g.n { clip-path: inset(var(--t2) 0 var(--b2) 0); transform: translateX(var(--x2)); }
+
+/* ---------- storyboard ---------- */
+.board { display: grid; grid-template-columns: minmax(0, 1fr); border: 1px solid var(--rule); }
+.board > * { min-width: 0; }
+.screen { position: relative; aspect-ratio: 16 / 9; max-height: 640px; width: 100%; background: var(--void); overflow: hidden; border-bottom: 1px solid var(--rule); }
+.screen > .dots { position: absolute; inset: 0; background-size: 20px 20px; }
+.screen .center { position: absolute; inset: 0; display: grid; place-items: center; }
+.screen .lock { font-size: clamp(28px, 4.4vw, 58px); }
+.screen .tc { position: absolute; left: 16px; bottom: 12px; font: 400 10px var(--font-mono); color: var(--ash); letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+.screen .corner { position: absolute; right: 16px; top: 12px; font: 400 10px var(--font-mono); color: var(--ash); letter-spacing: .1em; }
+.shots { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.shot { display: grid; align-content: start; gap: 4px; padding: 12px 14px 14px; border-right: 1px solid var(--rule-subtle); position: relative; }
+.shot:last-child { border-right: 0; }
+.shot .t { font: 500 10.5px var(--font-mono); color: var(--ash); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.shot h3 { font-size: 14px; font-weight: 700; }
+.shot p { color: var(--ash); font-size: 12px; line-height: 1.45; }
+.shot.on .t { color: var(--acid); }
+.shot.on::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: var(--acid); }
+.timeline { grid-column: 1 / -1; border-top: 1px solid var(--rule); padding: 14px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.track { position: relative; height: 34px; flex: 1 1 300px; min-width: 0; }
+.track .base { position: absolute; left: 0; right: 0; top: 16px; height: 1px; background: var(--rule); }
+.track .minor { position: absolute; left: 0; right: 0; top: 17px; height: 4px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px calc(100% / 46)); }
+.track .fill { position: absolute; left: 0; top: 15px; height: 3px; background: var(--acid); width: 0; }
+.track .mkr { position: absolute; top: 6px; width: 1px; height: 18px; background: var(--ash); }
+.track .mkr span { position: absolute; top: -4px; left: 4px; font: 400 8.5px var(--font-mono); color: var(--ash); white-space: nowrap; }
+.track .head { position: absolute; top: 2px; width: 1px; height: 30px; background: var(--bone); left: 0; }
+.track .head::before { content: ""; position: absolute; top: -1px; left: -3px; border: 3.5px solid transparent; border-top-color: var(--bone); }
+
+/* ---------- profiles ---------- */
+.profiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.prof { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.prof h3 { font: 800 18px/1 var(--font-display); font-variation-settings: "wdth" 108; text-transform: uppercase; }
+.prof .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.plot { position: relative; aspect-ratio: 4 / 3; }
+.plot .dots { position: absolute; inset: 0; background-size: 12px 12px; }
+.plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.plot .axis { stroke: var(--ash); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.plot .guide { stroke: var(--rule); stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
+.plot .curve { fill: none; stroke: var(--bone); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.plot .scan { stroke: var(--acid); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.plot .pt { fill: var(--acid); }
+.plot text { font: 400 8px var(--font-mono); fill: var(--ash); letter-spacing: .06em; }
+.runner { position: relative; height: 18px; border-bottom: 1px solid var(--rule); }
+.runner::before, .runner::after { content: ""; position: absolute; bottom: -1px; width: 1px; height: 7px; background: var(--ash); }
+.runner::before { left: 0; } .runner::after { right: 0; }
+.runner i { position: absolute; left: 0; bottom: 3px; width: 10px; height: 10px; background: var(--acid); }
+.prof dl { display: grid; gap: 0; margin: 0; font: 400 11px/1.4 var(--font-mono); font-variation-settings: "wdth" 85; }
+.prof dl div { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; }
+.prof dt { color: var(--ash); font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; }
+.prof dl i { flex: 1; border-bottom: 1px dotted color-mix(in oklab, var(--ash) 60%, transparent); transform: translateY(-3px); }
+.prof dd { margin: 0; color: var(--bone); text-align: right; }
+.prof p { color: var(--ash); font-size: 13px; }
+.patterns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-left: 1px solid var(--rule); }
+.pat { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.pat h3 { font-size: 15px; font-weight: 700; }
+.pat p { color: var(--ash); font-size: 13px; }
+.pat .demo { min-height: 120px; display: grid; gap: 8px; align-content: center; padding: 14px; position: relative; }
+.pat .demo .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; background: var(--plate); border: 1px solid var(--rule-subtle); font: 400 11px var(--font-mono); font-variation-settings: "wdth" 85; }
+.pat .demo .row b { font-weight: 400; color: var(--acid); }
+
+/* ---------- concept sheet ---------- */
+.sheet { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.card { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 16px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.card .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.card h3 { font: 800 17px/1.15 var(--font-display); font-variation-settings: "wdth" 106; text-transform: uppercase; }
+.cat { font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); white-space: nowrap; }
+.cat::before { content: "■ "; color: var(--acid); }
+.stage { position: relative; aspect-ratio: 16 / 10; background-color: var(--void); overflow: hidden; display: grid; place-items: center; }
+.stage.ticks { --tk: color-mix(in oklab, var(--bone) 55%, transparent); background-color: var(--void); }
+.card p { color: var(--ash); font-size: 13.5px; }
+.spec { display: grid; gap: 0; margin: 0; font: 400 11px/1.45 var(--font-mono); font-variation-settings: "wdth" 85; border-top: 1px solid var(--rule-subtle); padding-top: 6px; }
+.spec div { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; padding: 4px 0; }
+.spec dt { color: var(--ash); letter-spacing: .1em; text-transform: uppercase; font-size: 9.5px; padding-top: 2px; }
+.spec dd { margin: 0; color: var(--bone); }
+.card .btn { justify-self: start; }
+
+/* stage pieces */
+.s-dots { position: absolute; inset: 0; }
+.panel-x { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 6px; text-align: center; background: var(--void); }
+.panel-x .big { font: 300 28px/1 var(--font-mono); color: var(--bone); font-variant-numeric: tabular-nums; }
+.panel-x.b { background: var(--plate); }
+.panel-x.b .big { color: var(--mark); }
+.bracket-v { position: absolute; top: 20%; bottom: 20%; width: 12px; border: 1px solid var(--acid); }
+.bracket-v.l { border-right: 0; } .bracket-v.r { border-left: 0; }
+.hz-band { width: 80%; height: 20px; border: 1px solid var(--rule); position: relative; overflow: hidden; }
+.hz-band .stripes { position: absolute; inset: 0; background: repeating-linear-gradient(120deg, var(--acid) 0 7px, transparent 7px 14px); }
+.hz-band .mask { position: absolute; top: 0; bottom: 0; right: 0; background: var(--void); }
+.barcode { display: flex; align-items: stretch; padding: 4px 8px; background: var(--bone); height: 50px; position: relative; }
+.barcode i { display: block; background: var(--void); }
+.scan { position: absolute; top: -8px; bottom: -8px; width: 1px; background: var(--acid); left: 0; opacity: 0; }
+.serial { font: 400 12px var(--font-mono); letter-spacing: .14em; color: var(--bone); margin-top: 10px; text-align: center; font-variant-numeric: tabular-nums; }
+.path { font: 300 15px var(--font-mono); letter-spacing: .08em; color: var(--mark); white-space: nowrap; }
+.path .a { color: var(--acid); }
+.flap { display: flex; gap: 3px; font: 300 30px/1 var(--font-mono); color: var(--bone); font-variant-numeric: tabular-nums; }
+.flap span { display: inline-block; min-width: .66em; text-align: center; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.flap span.u { font-size: 12px; color: var(--ash); align-self: end; border: 0; min-width: 0; padding-left: 6px; }
+.gauge { width: 46%; height: auto; overflow: visible; }
+.gauge .trk { fill: none; stroke: var(--rule); stroke-width: 2; }
+.gauge .arc { fill: none; stroke: var(--acid); stroke-width: 2; }
+.gauge .mk4 { stroke: var(--ash); stroke-width: 1; }
+.gauge text { fill: var(--bone); font: 300 22px var(--font-mono); font-variant-numeric: tabular-nums; }
+.gauge .u { fill: var(--ash); font-size: 9px; }
+.gauge .sub { fill: var(--ash); font-size: 7px; letter-spacing: .14em; }
+.ruler2 { width: 84%; display: grid; gap: 6px; position: relative; }
+.ruler2 .scale { height: 14px; background: repeating-linear-gradient(90deg, var(--ash) 0 1px, transparent 1px 10%) left bottom / calc(100% + 1px) 6px no-repeat, repeating-linear-gradient(90deg, var(--ash) 0 1px, transparent 1px 2%) left bottom / calc(100% + 1px) 3px no-repeat; border-bottom: 1px solid var(--rule); }
+.ruler2 .nums { display: flex; justify-content: space-between; font: 400 8.5px var(--font-mono); color: var(--ash); }
+.ruler2 .needle { position: absolute; top: -26px; left: 0; width: 1px; height: 40px; background: var(--acid); }
+.ruler2 .needle span { position: absolute; top: -2px; left: 6px; font: 400 11px var(--font-mono); color: var(--acid); white-space: nowrap; font-variant-numeric: tabular-nums; }
+canvas.fill { position: absolute; inset: 0; width: 100%; height: 100%; }
+.target { position: absolute; width: 56px; height: 40px; border: 1px dashed var(--rule); display: grid; place-items: center; font: 400 8.5px var(--font-mono); color: var(--ash); letter-spacing: .06em; }
+.frame { position: absolute; width: 72px; height: 56px; pointer-events: none; }
+.frame i { position: absolute; width: 10px; height: 10px; border: 0 solid var(--acid); }
+.frame i:nth-child(1) { top: 0; left: 0; border-top-width: 1px; border-left-width: 1px; }
+.frame i:nth-child(2) { top: 0; right: 0; border-top-width: 1px; border-right-width: 1px; }
+.frame i:nth-child(3) { bottom: 0; left: 0; border-bottom-width: 1px; border-left-width: 1px; }
+.frame i:nth-child(4) { bottom: 0; right: 0; border-bottom-width: 1px; border-right-width: 1px; }
+.lockread { position: absolute; left: 10px; bottom: 8px; font: 400 9.5px var(--font-mono); color: var(--acid); letter-spacing: .1em; }
+.survey { width: 82%; display: grid; position: relative; }
+.survey .r { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; font: 400 11px var(--font-mono); color: var(--ash); font-variant-numeric: tabular-nums; }
+.survey .r i { flex: 1; border-bottom: 1px dotted var(--rule); transform: translateY(-3px); }
+.survey .r b { color: var(--bone); font-weight: 400; }
+.survey .line { position: absolute; left: -6%; right: -6%; height: 1px; background: var(--bone); top: 0; opacity: 0; }
+.tag { width: 70%; display: grid; }
+.tag .bar { display: flex; justify-content: space-between; background: var(--acid); color: var(--on-acid); padding: 4px 7px; font: 800 9px/1 var(--font-display); font-variation-settings: "wdth" 75; letter-spacing: .16em; text-transform: uppercase; }
+.tag .body { border: 1px solid var(--bone); border-top: 0; padding: 10px; }
+.tag .body .lock { font-size: 22px; }
+.tag .foot { height: 14px; border: 1px solid var(--bone); border-top: 0; background: repeating-linear-gradient(120deg, var(--acid) 0 6px, transparent 6px 12px); }
+.net .edge { stroke: var(--bone); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; stroke-dasharray: 1; }
+.net .node { fill: var(--plate); stroke: var(--bone); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.net .pk { fill: var(--acid); }
+.net text { font: 400 8px var(--font-mono); fill: var(--ash); letter-spacing: .08em; }
+.leader svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.leader .ld { stroke: var(--bone); stroke-width: 1; fill: none; vector-effect: non-scaling-stroke; }
+.leader .pt { fill: var(--acid); }
+.leader .lbl { position: absolute; font: 400 10px/1.4 var(--font-mono); color: var(--bone); letter-spacing: .06em; }
+.leader .lbl small { display: block; color: var(--ash); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+.corner-panel { width: 62%; height: 54%; position: relative; background: var(--plate); display: grid; place-items: center; align-content: center; gap: 4px; }
+.corner-panel .v { font: 300 24px var(--font-mono); color: var(--bone); }
+.corner-panel .c { position: absolute; width: 10px; height: 10px; border: 0 solid var(--bone); }
+.corner-panel .c1 { top: -1px; left: -1px; border-top-width: 1px; border-left-width: 1px; }
+.corner-panel .c2 { top: -1px; right: -1px; border-top-width: 1px; border-right-width: 1px; }
+.corner-panel .c3 { bottom: -1px; left: -1px; border-bottom-width: 1px; border-left-width: 1px; }
+.corner-panel .c4 { bottom: -1px; right: -1px; border-bottom-width: 1px; border-right-width: 1px; }
+.mw-list { width: 80%; display: grid; gap: 6px; }
+.mw-list div { display: flex; justify-content: space-between; padding: 7px 10px; background: var(--plate); border: 1px solid var(--rule-subtle); font: 400 11px var(--font-mono); font-variation-settings: "wdth" 85; }
+.mw-list b { font-weight: 400; color: var(--acid); }
+
+.ideas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.idea { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 16px; display: grid; gap: 6px; align-content: start; }
+.idea h3 { font-size: 15px; font-weight: 700; }
+.idea p { color: var(--ash); font-size: 13px; }
+
+
+/* ---------- charts ---------- */
+.chart { position: relative; min-width: 0; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart .gl { stroke: var(--rule-subtle); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .base { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .tick { font: 400 9px var(--font-mono); fill: var(--ash); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.chart .endv { font: 400 11px var(--font-mono); fill: var(--bone); font-variant-numeric: tabular-nums; }
+.chart .endv tspan.u { fill: var(--ash); font-size: 9px; }
+.chart .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .thr { stroke: var(--bone); stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
+.chart .thr-l { font: 400 9px var(--font-mono); fill: var(--ash); letter-spacing: .06em; }
+.chart .xh { stroke: var(--bone); stroke-width: 1; opacity: .5; shape-rendering: crispEdges; }
+.chart .evt { stroke: var(--warn); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .mk-bar { cursor: default; }
+.chart .mk-bar:hover, .chart .mk-bar.on { filter: brightness(1.25); }
+.chart .dots-bg { position: absolute; inset: 0 0 22px 36px; background-image: radial-gradient(circle at center, color-mix(in oklab, var(--bone) 14%, transparent) 0 1px, transparent 1.4px); background-size: 12px 12px; pointer-events: none; }
+.tt { position: absolute; z-index: 5; pointer-events: none; background: var(--plate); border: 1px solid var(--rule); padding: 7px 9px; display: grid; gap: 3px; font: 400 11px/1.35 var(--font-mono); font-variation-settings: "wdth" 85; color: var(--bone); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tt .h { color: var(--ash); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
+.tt .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.tt .r span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ash); }
+.tt i { display: inline-block; width: 10px; height: 2px; }
+.ch-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
+.ch-head h3 { font-size: 15px; font-weight: 700; }
+.ch-head .acts { display: flex; gap: 6px; align-items: center; }
+.ch-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 10.5px var(--font-mono); color: var(--ash); font-variation-settings: "wdth" 85; }
+.ch-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.ch-legend i { width: 14px; height: 2px; display: inline-block; }
+.ch-legend i.sq { width: 8px; height: 8px; }
+.ch-legend i.st-ok { background: var(--ok); } .ch-legend i.st-warn { background: repeating-linear-gradient(120deg, var(--warn) 0 2px, transparent 2px 4px); outline: 1px solid var(--warn); } .ch-legend i.st-down { background: var(--down); }
+.ch-table { overflow-x: auto; max-height: 240px; overflow-y: auto; border: 1px solid var(--rule); }
+.ch-table table { width: 100%; border-collapse: collapse; font: 400 11.5px var(--font-mono); font-variation-settings: "wdth" 85; font-variant-numeric: tabular-nums; }
+.ch-table th { text-align: left; font-weight: 500; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ash); padding: 8px 10px; border-bottom: 1px solid var(--rule); background: var(--plate); position: sticky; top: 0; }
+.ch-table td { padding: 7px 10px; border-bottom: 1px solid var(--rule-subtle); }
+.ch-table td:not(:first-child), .ch-table th:not(:first-child) { text-align: right; }
+.ch-note { font: 400 10.5px var(--font-mono); color: var(--ash); font-variation-settings: "wdth" 85; }
+.ch-note b { color: var(--bone); font-weight: 400; }
+.ch-live { display: inline-flex; align-items: center; gap: 6px; font: 500 9.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
+.ch-live::before { content: ""; width: 6px; height: 6px; background: var(--acid); }
+.ch-live.paused::before { background: var(--ash); }
+.mini-btn { border: 1px solid var(--rule); background: transparent; padding: 5px 8px; font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); cursor: pointer; font-variation-settings: "wdth" 85; }
+.mini-btn:hover, .mini-btn[aria-pressed="true"] { color: var(--bone); border-color: var(--bone); }
+
+.gim { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.gim .card .chart { min-height: 190px; }
+@media (max-width: 860px) { .gim { grid-template-columns: 1fr; } }
+
+/* ---------- glitch anatomy ---------- */
+.glx { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); border: 1px solid var(--rule); }
+.glx > * { min-width: 0; }
+.glx-stage { position: relative; aspect-ratio: 16 / 7; background-color: var(--void); border-right: 1px solid var(--rule); --tk: color-mix(in oklab, var(--bone) 55%, transparent); }
+.glx-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.glx-read { position: absolute; left: 14px; bottom: 12px; font-variant-numeric: tabular-nums; }
+.glx-ctl { padding: 18px; display: grid; gap: 18px; align-content: start; }
+.ctl-row { display: grid; gap: 8px; }
+.ctl-row:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.seg2 { display: inline-flex; border: 1px solid var(--rule); justify-self: start; }
+.seg2 button { border: 0; background: transparent; padding: 9px 13px; font: 500 10px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); cursor: pointer; font-variation-settings: "wdth" 85; }
+.seg2 button + button { border-left: 1px solid var(--rule); }
+.seg2 button[aria-pressed="true"] { background: var(--acid); color: var(--on-acid); }
+.tgl { display: inline-flex; align-items: center; gap: 10px; font: 500 10px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); cursor: pointer; }
+.tgl input { appearance: none; -webkit-appearance: none; width: 32px; height: 16px; border: 1px solid var(--ash); margin: 0; position: relative; cursor: pointer; }
+.tgl input::after { content: ""; position: absolute; left: 2px; top: 2px; width: 10px; height: 10px; background: var(--ash); transition: transform 200ms cubic-bezier(.3,1.35,.5,1); }
+.tgl input:checked { border-color: var(--acid); } .tgl input:checked::after { transform: translateX(16px); background: var(--acid); }
+.layers { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border-left: 1px solid var(--rule); }
+.layer { border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 14px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.layer .lstage { position: relative; aspect-ratio: 4 / 3; background: var(--void); }
+.layer .lstage canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.layer h3 { font-size: 14px; font-weight: 700; }
+.layer p { color: var(--ash); font-size: 12.5px; line-height: 1.45; }
+.layer .btn { justify-self: start; padding: 7px 10px; font-size: 9.5px; }
+@media (max-width: 1080px) { .layers { grid-template-columns: repeat(3, minmax(0, 1fr)); } .glx { grid-template-columns: 1fr; } .glx-stage { border-right: 0; border-bottom: 1px solid var(--rule); } }
+@media (max-width: 620px) { .layers { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 1080px) { .sheet { grid-template-columns: repeat(2, minmax(0, 1fr)); } .profiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1080px) { .shots { grid-template-columns: repeat(4, minmax(0, 1fr)); } .shot { border-bottom: 1px solid var(--rule-subtle); } }
+@media (max-width: 860px) { .patterns { grid-template-columns: 1fr; } .shots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .sheet, .profiles { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<main class="wrap">
+  <section class="intro">
+    <span class="label"><b>■</b> AstraLabs / Motion lab</span>
+    <h1>Motion Lab</h1>
+    <p>Motion for AstraLabs should feel like a precise instrument, with the occasional mechanical hiccup. Everything here is built from <strong>four speeds and three patterns</strong>, plotted below so the timing is exact. The intro storyboard below plays the reboot sequence. <span id="rm-note" hidden><strong>Reduced motion is on</strong>, so stages show their final frame.</span></p>
+    <div class="mrule"><i></i></div>
+  </section>
+
+  <!-- ===================== STORYBOARD ===================== -->
+  <section>
+    <div class="sec-head"><div class="t"><h2>Storyboard · reboot intro</h2><span class="label">5.1s · 24fps · 16:9</span></div><div class="mrule"><i></i></div></div>
+    <div class="board">
+      <div class="screen" id="screen">
+        <canvas class="fill" id="sb-field" aria-hidden="true"></canvas>
+        <span class="reg" id="rg1" style="top:16px;left:16px"></span><span class="reg" id="rg2" style="bottom:16px;right:16px"></span>
+        <div class="center"><span class="gw" id="sb-gw"></span></div>
+        <span class="corner">AL-TV · REBOOT</span>
+        <span class="tc" id="sb-tc">00:00:00</span>
+      </div>
+      <div class="shots" id="shots"></div>
+      <div class="timeline">
+        <button class="btn btn-primary" type="button" id="sb-play">Play intro</button>
+        <div class="track" id="track" aria-hidden="true"><div class="base"></div><div class="minor"></div><div class="fill" id="tl-fill"></div><div class="head" id="tl-head"></div></div>
+        <span class="label" id="sb-time">0.00s / 5.10s</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DOT FIELD IDLE ===================== -->
+  <section>
+    <div class="sec-head"><div class="t"><h2>Dot field · idle</h2><span class="label">After ignition · runs continuously</span></div><div class="mrule"><i></i></div><p>Ignition stays exactly as it is. Once the ring settles, the idle field takes over from the same resting frame and keeps the surface quietly alive. The dots never move. Only their grey shifts up and down, following a slow height field like ocean swell seen from above.</p></div>
+    <div class="glx">
+      <div class="glx-stage ticks" style="aspect-ratio:16/8"><canvas id="idle-canvas" aria-label="Idle dot field demo" style="position:absolute;inset:0;width:100%;height:100%"></canvas><div style="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none"><span style="font-size:40px">__LOCK__</span></div><span class="glx-read label" id="idle-read">Sea · amount 1</span></div>
+      <div class="glx-ctl">
+        <div class="ctl-row"><span class="label">Mode</span><div class="chips" id="idle-modes"></div><span class="ch-note">Picked from the dot field studies (F15).</span></div>
+        <div class="ctl-row"><span class="label">Amount</span><div class="seg2" id="idle-k" role="group" aria-label="Amount"><button type="button" data-k=".6">Less</button><button type="button" data-k="1" aria-pressed="true">Default · login</button><button type="button" data-k="1.6">More</button></div></div>
+        <p class="ch-note" id="idle-desc" style="font-size:12.5px;line-height:1.5;color:var(--ash)"></p>
+        <div class="ctl-row"><button class="btn" type="button" id="idle-reignite">Re-ignite</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PROFILES ===================== -->
+  <section>
+    <div class="sec-head"><div class="t"><h2>Motion profiles</h2><button class="btn" type="button" id="prof-run">Run all</button></div><div class="mrule"><i></i></div><p>Each curve is plotted as progress (up) over time (across). The acid line scans time at a constant rate, and the dot shows where the motion is. Overshoot rises above the 1.0 marker.</p></div>
+    <div class="profiles" id="profiles"></div>
+    <div class="patterns" id="patterns"></div>
+  </section>
+
+  <!-- ===================== GLITCH ===================== -->
+  <section>
+    <div class="sec-head"><div class="t"><h2>Glitch anatomy</h2><span class="label">Idle glitch · five layers</span></div><div class="mrule"><i></i></div><p>The idle glitch is a short burst of stepped frames, 7 to 13 of them over roughly 250–450ms, that rise and fall in strength and then snap back to a clean frame. Each frame mixes up to five layers. Toggle layers and intensity below, then trigger it, or leave Auto on to see it at its real 8–20 second rhythm.</p></div>
+    <div class="glx">
+      <div class="glx-stage ticks"><div class="dots" style="position:absolute;inset:0;opacity:.5"></div><canvas id="glx-canvas" aria-label="AstraLabs lockup, glitch demo"></canvas><span class="glx-read label" id="glx-read">Idle · next in —</span></div>
+      <div class="glx-ctl">
+        <div class="ctl-row"><span class="label">Intensity</span><div class="seg2" id="glx-int" role="group" aria-label="Intensity"><button type="button" data-k=".35">Subtle</button><button type="button" data-k=".6" aria-pressed="true">Default</button><button type="button" data-k="1">Heavy</button></div></div>
+        <div class="ctl-row"><span class="label">Layers</span><div class="chips" id="glx-layers"></div></div>
+        <div class="ctl-row"><button class="btn btn-primary" type="button" id="glx-go">Trigger glitch</button><label class="tgl"><input type="checkbox" id="glx-auto" checked> Auto · every 8–20s</label></div>
+      </div>
+    </div>
+    <div class="layers" id="glx-cards"></div>
+  </section>
+
+  <!-- ===================== GRAPHS IN MOTION ===================== -->
+  <section>
+    <div class="sec-head"><div class="t"><h2>Graphs in motion</h2><span class="label">Live data · four rules</span></div><div class="mrule"><i></i></div><p>Live charts move because the data moves, never for decoration. Time scrolls at a constant rate, scales settle, new values snap in, and crossing a threshold is the one event that gets a flicker.</p></div>
+    <div class="gim">
+      <article class="card gcard" data-chart="scroll">
+        <div class="head"><h3>Live scroll</h3><span class="cat">Time</span></div>
+        <div class="chart" id="m-scroll"></div>
+        <p>The time window slides left at exactly the sample rate. The right edge shows one sample ago, so each new point slides in from off the plot instead of popping in. The end marker rides the line.</p>
+        <dl class="spec"><div><dt>Motion</dt><dd>Continuous, 1 sample per second</dd></div><div><dt>Curve</dt><dd>linear (time is constant-rate)</dd></div><div><dt>CSS / JS</dt><dd>requestAnimationFrame; x = edge − (tRef − t) / window × width; tRef = now − rate</dd></div></dl>
+      </article>
+      <article class="card gcard" data-chart="rescale">
+        <div class="head"><h3>Smooth rescale</h3><span class="cat">Scale</span></div>
+        <div class="chart" id="m-rescale"></div>
+        <p>When a burst lands outside the scale, the y-axis settles to the new nice maximum. Gridlines and tick labels slide to their new positions; nothing jumps.</p>
+        <dl class="spec"><div><dt>Motion</dt><dd>360ms per rescale</dd></div><div><dt>Curve</dt><dd>Settle · cubic-bezier(.16, 1, .3, 1)</dd></div><div><dt>CSS / JS</dt><dd>Interpolate yMax between nice steps; recompute ticks from the target scale, place with the current scale</dd></div></dl>
+      </article>
+      <article class="card gcard" data-chart="push">
+        <div class="head"><h3>Column push</h3><span class="cat">Bars</span></div>
+        <div class="chart" id="m-push"></div>
+        <p>Columns slide one slot per second. Each new column grows from the baseline with a small servo overshoot. The peak in the window carries the only label.</p>
+        <dl class="spec"><div><dt>Motion</dt><dd>Grow 200ms · slide 1s linear</dd></div><div><dt>Curve</dt><dd>Snap · cubic-bezier(.3, 1.35, .5, 1)</dd></div><div><dt>CSS / JS</dt><dd>Grow scale on the newest bar only; others translate with the window</dd></div></dl>
+      </article>
+      <article class="card gcard" data-chart="thresh">
+        <div class="head"><h3>Threshold event</h3><span class="cat">Event</span></div>
+        <div class="chart" id="m-thresh"></div>
+        <p>Crossing the alert line strobes the line once in warn, drops a marker on the time axis at the exact crossing, and turns the end marker warn while the value stays above.</p>
+        <dl class="spec"><div><dt>Motion</dt><dd>Strobe 340ms, then hold</dd></div><div><dt>Curve</dt><dd>Hard steps: on, off, on, dim, on</dd></div><div><dt>CSS / JS</dt><dd>Interpolate the crossing time between samples; the marker scrolls with the data</dd></div></dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== CONCEPTS ===================== -->
+  <section>
+    <div class="sec-head"><div class="t"><h2>Concepts</h2><div class="chips" id="cats" role="group" aria-label="Filter by category"></div></div><div class="mrule"><i></i></div></div>
+    <div class="sheet" id="sheet"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><div class="t"><h2>More to explore</h2><span class="label">Not built yet</span></div><div class="mrule"><i></i></div></div>
+    <div class="ideas">
+      <div class="idea"><span class="label"><b>■</b> Sound</span><h3>A sonic logo</h3><p>A relay click on each bracket snap, a soft tick per typed letter, and a low hum under the tube flicker. Under two seconds, mixed quietly enough for streams.</p></div>
+      <div class="idea"><span class="label"><b>■</b> 3D</span><h3>Machined mark</h3><p>The mark as a thin milled plate in Blender. Bone edges, one slow turn over a dot-grid floor, lit once by an acid scan line.</p></div>
+      <div class="idea"><span class="label"><b>■</b> Live data</span><h3>The mark as a status light</h3><p>On a wall dashboard the mark idles white. A degraded service sends one slice glitch. An outage keeps a single acid registration mark blinking beside it until it's fixed.</p></div>
+      <div class="idea"><span class="label"><b>■</b> Video</span><h3>Bracketed lower thirds</h3><p>Name plates as <span style="font-family:var(--font-mono)">[TOPIC/DETAIL]</span> using the type-in and snap. They exit with the power-down collapse.</p></div>
+      <div class="idea"><span class="label"><b>■</b> Web</span><h3>Bracket cursor</h3><p>On project pages, two tiny acid corner marks follow hover targets and snap around links. Mouse only, never on touch.</p></div>
+      <div class="idea"><span class="label"><b>■</b> Print</span><h3>Animated stickers</h3><p>Each sticker's barcode becomes a QR to a 3-second loop of that decal stamping on.</p></div>
+    </div>
+  </section>
+</main>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) document.getElementById('rm-note').hidden = false;
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const NS = 'http://www.w3.org/2000/svg';
+  const O = 'M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z';
+  const I = 'M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z';
+  /* the four speeds */
+  const P = {
+    flick:  { name: 'Flick',  dur: 40,  css: 'steps(1, end)', bez: null, feel: 'A hard cut. One frame on, one frame off.', use: 'Strobes, glitch slices, status blinks, hover colour swaps.' },
+    snap:   { name: 'Snap',   dur: 200, css: 'cubic-bezier(.3, 1.35, .5, 1)', bez: [.3, 1.35, .5, 1], feel: 'A servo: fast, a small overshoot, settles. Never bouncy.', use: 'Bracket snaps, toggles, indicators sliding, focus locking on.' },
+    trace:  { name: 'Trace',  dur: 900, css: 'cubic-bezier(.7, 0, .2, 1)', bez: [.7, 0, .2, 1], feel: 'Winds up, commits, then lands precisely. A plotter arm.', use: 'Lines drawing on, meters filling, scans, wipes across a frame.' },
+    settle: { name: 'Settle', dur: 360, css: 'cubic-bezier(.16, 1, .3, 1)', bez: [.16, 1, .3, 1], feel: 'Arrives instantly and decelerates for a long time.', use: 'Anything you read: text, panels, toasts, mask wipes in.' },
+  };
+  const SNAP = P.snap.css.replace(/ /g, ''), TRACE = P.trace.css.replace(/ /g, ''), SETTLE = P.settle.css.replace(/ /g, '');
+  // Strobe-in: off, on, off, on, dim, on over 340ms in hard steps, so each flick reads
+  // WAAPI applies a timing function to the whole animation; hard cuts must be set per keyframe
+  const hard = kf => kf.map(k => ({ easing: 'steps(1, end)', ...k }));
+  const STROBE = hard([{ opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 0, offset: .24 }, { opacity: 1, offset: .4 }, { opacity: .35, offset: .56 }, { opacity: 1, offset: .72 }, { opacity: 1 }]);
+  const T_STROBE = 340, T_WIPE = 560, STAGGER = 60;
+  const TUBE = [{ opacity: 0 }, { opacity: .85, offset: .08 }, { opacity: 0, offset: .12 }, { opacity: 0, offset: .3 }, { opacity: .5, offset: .33 }, { opacity: .1, offset: .36 }, { opacity: 1, offset: .52 }, { opacity: .35, offset: .55 }, { opacity: 1, offset: .6 }, { opacity: 1 }];
+  const SPIN = ['/', '—', '\\', '|'];
+  const GL = '▲◆/\\|<>#01ΛΣΔ';
+  const rnd = a => a[Math.floor(Math.random() * a.length)];
+  const markSVG = h => `<svg class="mk" viewBox="0 0 600 519.62" style="height:${h}" aria-hidden="true"><g class="ol"><path pathLength="1" d="${O}"/><path pathLength="1" d="${I}"/></g><g class="fl"><path d="${O}"/><path d="${I}"/></g></svg>`;
+  const wmHTML = (inner = 'ASTRA<i class="sl">/</i>LABS') => `<span class="wm"><span class="br lb">[</span><span class="in">${inner}</span><span class="br rb">]</span></span>`;
+  const lockHTML = () => `<span class="lock">${markSVG('1.05em')}${wmHTML()}</span>`;
+  const bars = (seed, n) => { let s = seed, h = ''; for (let i = 0; i < n; i++) { s = (s * 9301 + 49297) % 233280; h += `<i style="width:${1 + Math.floor(s / 233280 * 3)}px;margin-right:${1 + i % 3}px"></i>`; } return h; };
+  // patterns
+  const strobe = (el, delay = 0) => el.animate(STROBE, { duration: T_STROBE, delay, easing: 'linear', fill: 'backwards' });
+  const wipe = (el, delay = 0, from = 'inset(0 100% 0 0)') => el.animate([{ clipPath: from }, { clipPath: 'inset(0 0 0 0)' }], { duration: T_WIPE, delay, easing: SETTLE, fill: 'backwards' });
+  // the default entrance is a smooth wipe; Strobe-in is a separate pattern for things that power on
+  const enter = (el, delay = 0, from) => wipe(el, delay, from);
+  const snapOut = (lb, rb, delay = 0) => { lb.animate([{ transform: 'none' }, { transform: 'translateX(-.35em)', offset: .4 }, { transform: 'none' }], { duration: 360, delay, easing: SNAP }); rb.animate([{ transform: 'none' }, { transform: 'translateX(.35em)', offset: .4 }, { transform: 'none' }], { duration: 360, delay, easing: SNAP }); };
+  function glitch(gw, ms = 280) {
+    if (reduce) return;
+    let frames = Math.max(3, Math.round(ms / 50));
+    const step = () => {
+      const t1 = Math.random() * 80, h1 = 6 + Math.random() * 18, t2 = Math.random() * 80, h2 = 4 + Math.random() * 12;
+      gw.style.setProperty('--t1', t1 + '%'); gw.style.setProperty('--b1', Math.max(0, 100 - t1 - h1) + '%');
+      gw.style.setProperty('--t2', t2 + '%'); gw.style.setProperty('--b2', Math.max(0, 100 - t2 - h2) + '%');
+      gw.style.setProperty('--x1', ((Math.random() * 2 - 1) * 12).toFixed(1) + 'px'); gw.style.setProperty('--x2', ((Math.random() * 2 - 1) * 9).toFixed(1) + 'px');
+      gw.classList.add('glitching');
+      if (--frames > 0) setTimeout(step, 40 + Math.random() * 30); else setTimeout(() => gw.classList.remove('glitching'), 40);
+    };
+    step();
+  }
+  const gwHTML = inner => `${inner}<span class="g k" aria-hidden="true">${inner}</span><span class="g n" aria-hidden="true">${inner}</span>`;
+  async function typeIn(wm, live, opts = {}) {
+    const inner = $('.in', wm), lb = $('.lb', wm), rb = $('.rb', wm), full = 'ASTRA/LABS';
+    inner.innerHTML = ''; strobe(lb); strobe(rb);
+    await wait(200); if (!live()) return;
+    const cur = document.createElement('span'); cur.className = 'cur'; inner.appendChild(cur);
+    const bl = cur.animate(hard([{ opacity: 1 }, { opacity: 0, offset: .5 }, { opacity: 0 }]), { duration: 960, iterations: Infinity });
+    for (const c of full) {
+      if (c === '/') { await wait(opts.pause ?? 240); if (!live()) return; }
+      inner.insertBefore(c === '/' ? Object.assign(document.createElement('i'), { className: 'sl', textContent: '/' }) : document.createTextNode(c), cur);
+      await wait(opts.speed ?? 62); if (!live()) return;
+    }
+    await wait(160); bl.cancel(); cur.remove(); snapOut(lb, rb);
+  }
+  /* wordmark load: [ spinner ] first, ASTRA types in left of it, LABS on its right, slash settles, brackets snap */
+  async function pathBoot(wm, live, o = {}) {
+    const inner = $('.in', wm), lb = $('.lb', wm), rb = $('.rb', wm);
+    inner.innerHTML = '<span class="pa"></span><i class="sl">/</i><span class="pb"></span>';
+    const a = $('.pa', inner), b = $('.pb', inner), sl = $('.sl', inner);
+    [lb, rb, sl].forEach(el => strobe(el));
+    let i = 0; const spin = setInterval(() => { sl.textContent = SPIN[i++ % 4]; }, 90);
+    const stop = () => { clearInterval(spin); sl.textContent = '/'; a.textContent = 'ASTRA'; b.textContent = 'LABS'; };
+    await wait(o.hold ?? 480); if (!live()) return stop();
+    for (const c of 'ASTRA') { a.textContent += c; await wait(o.speed ?? 60); if (!live()) return stop(); }
+    await wait(o.gap ?? 200); if (!live()) return stop();
+    for (const c of 'LABS') { b.textContent += c; await wait(o.speed ?? 60); if (!live()) return stop(); }
+    await wait(200); stop(); snapOut(lb, rb);
+  }
+  async function decodeText(el, text, live, per = 1.2) {
+    for (let f = 0; f < text.length * per + 10; f++) { if (!live()) return; el.textContent = [...text].map((c, i) => f > i * per + 4 || c === ' ' ? c : rnd(GL)).join(''); await wait(28); }
+    el.textContent = text;
+  }
+  const tc = t => { const s = Math.floor(t), f = Math.floor((t - s) * 24); return `00:${String(s).padStart(2, '0')}:${String(f).padStart(2, '0')}`; };
+
+  /* ================= STORYBOARD: reboot intro ================= */
+  const SHOTS = [
+    [0.00, 'Dot field', 'The unlit dot grid holds for a beat, then ignites from the centre in an acid ring, settles, and hands over to the Sea idle field.'],
+    [1.30, 'Trace', 'The mark\'s outline plots itself in bone on the Trace curve.'],
+    [2.05, 'Fill', 'The fill flickers on like a fluorescent tube: two false starts, then a hold.'],
+    [2.80, 'Slice', 'One slice glitch in acid and bone. The only grit in the piece.'],
+    [3.20, 'Path', 'Brackets and a spinning slash strobe on. ASTRA types in left of the spinner, then LABS on its right.'],
+    [4.45, 'Lock', 'The slash settles, the brackets snap, registration marks strobe once. Hold.'],
+  ];
+  const DUR = 5.1;
+  $('#shots').innerHTML = SHOTS.map(([t, h, p]) => `<div class="shot"><span class="t">${tc(t)}</span><h3>${h}</h3><p>${p}</p></div>`).join('');
+  SHOTS.forEach(([t]) => { const m = document.createElement('div'); m.className = 'mkr'; m.style.left = (t / DUR * 100) + '%'; $('#track').appendChild(m); });
+  const scr = $('#screen'), gw = $('#sb-gw');
+  function sbRest() { gw.innerHTML = gwHTML(lockHTML()); gw.style.width = ''; }
+
+  /* dot field: unlit grid first, then a ring ignites from (ox, oy) and leaves the dots at rest. p = progress, 1 = at rest */
+  function drawField(c, p, ox = .5, oy = .5) {
+    const r = c.getBoundingClientRect(), dpr = devicePixelRatio || 1; c.width = r.width * dpr; c.height = r.height * dpr;
+    const x = c.getContext('2d'); x.scale(dpr, dpr); const W = r.width, H = r.height, cx = W * ox, cy = H * oy;
+    const max = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy)), R = max * p;
+    for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+      const d = Math.hypot(gx - cx, gy - cy);
+      if (d > R) { if (p < 1) { x.fillStyle = 'rgba(237,230,225,.11)'; x.fillRect(gx - .75, gy - .75, 1.5, 1.5); } continue; }
+      const ring = Math.max(0, 1 - Math.abs(d - R) / 22), edge = Math.max(0, 1 - d / max);
+      x.fillStyle = ring > .05 && p < 1 ? `rgba(182,255,46,${.3 + ring * .7})` : `rgba(237,230,225,${.12 + edge * .2})`;
+      x.fillRect(gx - .75, gy - .75, 1.5, 1.5);
+    }
+  }
+  // hold the unlit grid, then ignite on an ease-in-out so the ring is seen leaving the centre
+  const IGN_HOLD = 450, IGN_DUR = 1300;
+  function ignite(c, live, ox, oy) {
+    const t0 = performance.now();
+    const f = () => { if (!live()) return drawField(c, 1, ox, oy); const t = Math.min(1, Math.max(0, (performance.now() - t0 - IGN_HOLD) / IGN_DUR)), e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; drawField(c, Math.max(.0001, e), ox, oy); if (t < 1) requestAnimationFrame(f); };
+    f();
+  }
+  sbRest();
+  let sbTok = 0;
+  async function playIntro() {
+    if (reduce) return;
+    const tok = ++sbTok, live = () => tok === sbTok;
+    scr.getAnimations({ subtree: true }).forEach(a => a.cancel()); sbRest();
+    const btn = $('#sb-play'); btn.disabled = true;
+    const base = gw.firstElementChild, mk = $('.mk', base), wm = $('.wm', base);
+    gw.style.width = gw.getBoundingClientRect().width + 'px';  // pin so the mark never moves while the path types
+    $$('.g', gw).forEach(g => g.style.visibility = 'hidden');
+    $('.in', wm).innerHTML = ''; wm.style.visibility = 'hidden'; $('.fl', mk).style.opacity = 0;
+    const t0 = performance.now(); let shot = -1;
+    const clock = () => { if (!live()) return; const t = Math.min(DUR, (performance.now() - t0) / 1000); $('#sb-tc').textContent = tc(t); $('#sb-time').textContent = `${t.toFixed(2)}s / ${DUR.toFixed(2)}s`; $('#tl-fill').style.width = (t / DUR * 100) + '%'; $('#tl-head').style.left = (t / DUR * 100) + '%'; const ns = SHOTS.reduce((a, s, i) => t >= s[0] ? i : a, 0); if (ns !== shot) { shot = ns; $$('.shot').forEach((el, i) => el.classList.toggle('on', i === ns)); } if (t < DUR) requestAnimationFrame(clock); };
+    clock();
+    const at = async s => { const d = s * 1000 - (performance.now() - t0); if (d > 0) await wait(d); return live(); };
+    // 0.00 dot field
+    { sbIdle.stop(); ignite($('#sb-field'), live, .5, .5); setTimeout(() => { if (live()) { sbIdle.resize(); sbIdle.start(true); } }, IGN_HOLD + IGN_DUR + 30); }
+    $$('.reg', scr).forEach(r => r.style.opacity = 0);
+    // 0.80 trace
+    if (!await at(1.3)) return;
+    $$('.ol path', mk).forEach((p, i) => p.animate([{ opacity: 1, strokeDashoffset: 1 }, { opacity: 1, strokeDashoffset: 0, offset: .8 }, { opacity: 0, strokeDashoffset: 0 }], { duration: 1300, delay: i * 120, easing: TRACE }));
+    // 1.55 fill
+    if (!await at(2.05)) return;
+    $('.fl', mk).style.opacity = ''; $('.fl', mk).animate(TUBE, { duration: 760, fill: 'backwards' });
+    // slice glitch
+    if (!await at(2.8)) return;
+    $$('.g', gw).forEach(g => { g.style.visibility = ''; $('.wm', g).style.visibility = 'hidden'; }); glitch(gw, 260);
+    // 2.70 path
+    if (!await at(3.2)) return;
+    wm.style.visibility = ''; await pathBoot(wm, live, { hold: 420, speed: 58, gap: 180 });
+    $$('.g .wm', gw).forEach(w => w.style.visibility = '');
+    // 3.80 lock
+    if (!await at(4.45)) return;
+    $$('.reg', scr).forEach(r => { r.style.opacity = ''; strobe(r); });
+    if (!await at(DUR + .4)) return;
+    btn.disabled = false; gw.style.width = '';
+  }
+  $('#sb-play').addEventListener('click', playIntro);
+  if (reduce) $('#sb-play').disabled = true;
+
+  /* ================= PROFILES ================= */
+  function bez([x1, y1, x2, y2]) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx;
+    return x => { let t = x; for (let i = 0; i < 8; i++) { const e = X(t) - x; if (Math.abs(e) < 1e-5) break; const d = dX(t); if (Math.abs(d) < 1e-6) break; t -= e / d; } return Y(Math.min(1, Math.max(0, t))); };
+  }
+  const PW = 200, PH = 150, px = x => 16 + x * (PW - 28), py = y => PH - 22 - y * (PH - 54);
+  $('#profiles').innerHTML = Object.entries(P).map(([k, p]) => {
+    const f = p.bez ? bez(p.bez) : (x => x < 1 ? 0 : 1);
+    let d = ''; if (p.bez) { for (let i = 0; i <= 60; i++) { const x = i / 60; d += (i ? ' L' : 'M') + px(x).toFixed(1) + ' ' + py(f(x)).toFixed(1); } } else d = `M${px(0)} ${py(0)} L${px(1)} ${py(0)} L${px(1)} ${py(1)}`;
+    const ticks = [0, .25, .5, .75, 1].map(x => `<line class="axis" x1="${px(x)}" y1="${py(0)}" x2="${px(x)}" y2="${py(0) + (x % .5 ? 3 : 6)}"/>`).join('');
+    return `<article class="prof" data-k="${k}"><div class="head"><h3>${p.name}</h3><span class="label"><b>${p.dur}ms</b></span></div>
+      <div class="plot"><div class="dots fade"></div><svg viewBox="0 0 ${PW} ${PH}" aria-hidden="true">
+        <line class="guide" x1="${px(0)}" y1="${py(1)}" x2="${px(1)}" y2="${py(1)}"/><line class="guide" x1="${px(0)}" y1="${py(.5)}" x2="${px(1)}" y2="${py(.5)}"/>
+        <line class="axis" x1="${px(0)}" y1="${py(0)}" x2="${px(1)}" y2="${py(0)}"/><line class="axis" x1="${px(0)}" y1="${py(0)}" x2="${px(0)}" y2="${py(1.3)}"/>${ticks}
+        <text x="${px(0) - 4}" y="${py(1) + 3}" text-anchor="end">1.0</text><text x="${px(0) - 4}" y="${py(0) + 3}" text-anchor="end">0</text><text x="${px(1)}" y="${PH - 4}" text-anchor="end">${p.dur}ms</text><text x="${px(0)}" y="${PH - 4}">t</text>
+        <path class="curve" d="${d}"/><line class="scan" x1="${px(0)}" y1="${py(0)}" x2="${px(0)}" y2="${py(1.3)}" opacity="0"/><rect class="pt" x="${px(0) - 2.5}" y="${py(0) - 2.5}" width="5" height="5"/></svg></div>
+      <div class="runner"><i></i></div>
+      <dl><div><dt>Curve</dt><i></i><dd>${p.css}</dd></div><div><dt>Feels like</dt><i></i><dd>${p.feel.split('.')[0]}</dd></div></dl>
+      <p>${p.use}</p></article>`;
+  }).join('');
+  function runProfile(card) {
+    if (reduce) return;
+    const k = card.dataset.k, p = P[k], f = p.bez ? bez(p.bez) : (x => x < 1 ? 0 : 1), slow = k === 'flick' ? 600 : p.dur * 2.2;
+    const scan = $('.scan', card), pt = $('.pt', card), runner = $('.runner i', card), rw = $('.runner', card).clientWidth - 10;
+    runner.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${rw}px)` }], { duration: slow, easing: k === 'flick' ? 'steps(1, end)' : p.css, fill: 'forwards' });
+    const t0 = performance.now();
+    const step = () => { const x = Math.min(1, (performance.now() - t0) / slow), y = f(x); scan.setAttribute('x1', px(x)); scan.setAttribute('x2', px(x)); scan.setAttribute('opacity', x < 1 ? 1 : 0); pt.setAttribute('x', px(x) - 2.5); pt.setAttribute('y', py(y) - 2.5); if (x < 1) requestAnimationFrame(step); else setTimeout(() => runner.getAnimations().forEach(a => a.cancel()), 700); };
+    step();
+  }
+  $('#prof-run').addEventListener('click', () => $$('.prof').forEach((c, i) => setTimeout(() => runProfile(c), i * 120)));
+  $$('.prof').forEach(c => c.addEventListener('click', () => runProfile(c)));
+
+  /* three patterns */
+  const PATS = [
+    ['strobe', 'Strobe-in', '340ms · 6 hard steps', 'Off, on, off, on, dim, on, then it holds. Each step lasts two to three frames, so the flicker reads. Use it only for things that power on: the mark, brackets, tick marks and registration marks. Never on rows or text.', s => { strobe($('.demo', s).firstElementChild); }],
+    ['wipe', 'Wipe-in', '560ms · settle', 'A left-to-right mask reveal on the Settle curve: most of the distance in the first 150ms, then a long, precise landing. Smooth, no flicker. It is the default entrance for panels, rows, toasts and text.', s => { $$('.demo .row', s).forEach(r => enter(r)); }],
+    ['stagger', 'Stagger', '60ms per item', 'Only the timing: each row arrives 60ms after the one above, with a short settle (fade up 4px over 320ms) and no wipe. Pair it with any entrance; here it stands alone.', s => { $$('.demo .row', s).forEach((r, i) => r.animate([{ opacity: 0, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: i * STAGGER, easing: SETTLE, fill: 'backwards' })); }],
+  ];
+  $('#patterns').innerHTML = PATS.map(([id, n, spec, desc]) => `<article class="pat" data-p="${id}"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><h3>${n}</h3><span class="label">${spec}</span></div><div class="demo dots ticks">${id === 'strobe' ? '<div style="justify-self:center;font-size:30px">' + lockHTML() + '</div>' : ['gitea · node-01|18ms', 'jellyfin · node-02|42ms', 'immich · node-02|310ms', 'adguard · pi-03|3ms'].map(r => { const [a, b] = r.split('|'); return `<div class="row"><span>${a}</span><b>${b}</b></div>`; }).join('')}</div><p>${desc}</p><button class="btn" type="button" data-pat="${id}" ${reduce ? 'disabled' : ''}>Replay</button></article>`).join('');
+  document.addEventListener('click', e => { const b = e.target.closest('[data-pat]'); if (b && !reduce) PATS.find(p => p[0] === b.dataset.pat)[4](b.closest('.pat')); });
+
+
+  /* ================= GLITCH ENGINE (canvas) ================= */
+  const R2 = (a, b) => a + Math.random() * (b - a);
+  // true RGB channels: offset apart they fringe, overlapped they add back to white
+  const FRINGE = { r: '#ff0000', g: '#00ff00', b: '#0000ff' };
+  const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 519.62" fill="#ffffff"><path d="${O}"/><path d="${I}"/></svg>`;
+  const LOCKUP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0.00 904.68 105.00">      <g transform="translate(0.00 0.00) scale(0.20207)" fill="#FFFFFF"><path d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/><path d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/></g>   <path fill="#FFFFFF" d="M236.7592696453283 74.9 249.69528673517203 30.1H258.7896060711095L271.72562316095326 74.9H265.8344737468908L254.34324571954704 34.4903671875H253.82804845392204L242.30322179376577 74.9ZM243.96086827814077 59.10796240234375V53.84401025390625H264.56882726251575V59.10796240234375Z M306.18802111017203 63.476000000000006Q307.0392149578283 66.8808232421875 309.78882213556267 68.6840341796875Q312.53842931329706 70.4872451171875 316.89525255548455 70.4872451171875Q321.44246349298453 70.4872451171875 324.0576693035314 68.35363623046875Q326.6728751140783 66.22002734375 326.6728751140783 62.535210937500004Q326.6728751140783 59.5559931640625 324.83606896173455 57.831185302734376Q322.9992628093908 56.10637744140625 319.2808477703283 55.680775390625L313.5688477703283 55.008775390625004Q307.46485802423456 54.25837744140625 304.35686315118767 51.13918017578125Q301.2488682781408 48.01998291015625 301.2488682781408 42.5767890625Q301.2488682781408 38.533591796875 303.20886486017207 35.55439453125Q305.1688614422033 32.575197265625 308.7192559734533 30.912Q312.2696505047033 29.248802734374998 317.00724571954703 29.248802734374998Q321.7336436687658 29.248802734374998 325.2840382000158 30.844801025390623Q328.8344327312658 32.44079931640625 330.8952286297033 35.425598632812495Q332.9560245281408 38.41039794921875 333.2360245281408 42.644H327.84887169610954Q327.0536778484533 38.72397607421875 324.24807237970333 36.61836547851563Q321.4424669109533 34.5127548828125 317.00724571954703 34.5127548828125Q312.2248340984533 34.5127548828125 309.4808272625158 36.674363769531254Q306.7368204265783 38.83597265625 306.7368204265783 42.5767890625Q306.7368204265783 45.5560068359375 308.59602623712516 47.2584150390625Q310.45523204767204 48.9608232421875 314.1288477703283 49.431224609375L319.8408477703283 50.103224609375005Q325.9896368328283 50.8088232421875 329.07523204767205 53.950420166015626Q332.1608272625158 57.09201708984375 332.1608272625158 62.535210937500004Q332.1608272625158 66.52240820312501 330.2624310222814 69.49600512695314Q328.36403478204704 72.46960205078126 324.93684093439083 74.11039965820314Q321.50964708673456 75.75119726562501 316.89525255548455 75.75119726562501Q312.15765392267207 75.75119726562501 308.6184583660314 74.29519897460938Q305.0792628093908 72.83920068359376 303.04086656915644 70.07840136718751Q301.0024703289221 67.31760205078126 300.7112696453283 63.476000000000006Z M375.7736710125158 74.9V35.3639521484375H361.2584669109533V30.1H395.86642589532835V35.3639521484375H381.35122179376583V74.9Z M426.95766417657836 74.9V30.1H443.66803136407833Q447.9912320476721 30.1 451.1776317058752 31.651198974609375Q454.36403136407836 33.20239794921875 456.1168306804846 36.08639624023438Q457.86962999689086 38.97039453125 457.86962999689086 42.9239931640625Q457.86962999689086 46.68719384765625 456.09443102228147 49.4759931640625Q454.31923204767213 52.264792480468756 451.132832389469 53.838391113281254Q447.9464327312659 55.41198974609375 443.66803136407833 55.41198974609375H432.5352149578284V74.9ZM452.3928785320471 74.9 439.0648648601721 54.403996582031255H445.2472115398596L458.87762316095336 74.9ZM432.5352149578284 50.5736328125H443.8248340984534Q447.6664566570471 50.5736328125 449.97926793634394 48.479222900390624Q452.29207921564085 46.384812988281254 452.29207921564085 42.96879248046875Q452.29207921564085 39.50797265625 449.97926793634394 37.43596240234375Q447.6664566570471 35.3639521484375 443.8248340984534 35.3639521484375H432.5352149578284Z M485.3992696453284 74.9 498.33528673517213 30.1H507.4296060711096L520.3656231609534 74.9H514.4744737468909L502.98324571954714 34.4903671875H502.4680484539221L490.9432217937659 74.9ZM492.60086827814087 59.10796240234375V53.84401025390625H513.2088272625159V59.10796240234375Z M617.0664600750158 74.9V30.1H622.6440108562658V69.63604785156251H644.2824464031409V74.9Z M671.8792696453282 74.9 684.815286735172 30.1H693.9096060711096L706.8456231609533 74.9H700.9544737468908L689.463245719547 34.4903671875H688.9480484539221L677.4232217937658 74.9ZM679.0808682781408 59.10796240234375V53.84401025390625H699.6888272625158V59.10796240234375Z M738.2504737468907 74.9V30.1H752.5864395672032Q759.597640250797 30.1 763.6184378582188 33.331197265625Q767.6392354656407 36.56239453125 767.6392354656407 42.1959931640625Q767.6392354656407 45.600802734375 765.8472303386876 48.02560546875Q764.0552252117345 50.450408203125 760.8072149578283 51.35760546875V52.1864013671875Q764.424823844547 53.2055986328125 766.4016282879063 55.938399658203124Q768.3784327312658 58.67120068359375 768.3784327312658 62.5800068359375Q768.3784327312658 68.33680615234375 764.1728358074377 71.61840307617189Q759.9672388836095 74.9 752.5864395672032 74.9ZM743.8280245281408 69.725646484375H752.5864395672032Q757.5480587078282 69.725646484375 760.174470328922 67.76003759765626Q762.8008819500158 65.79442871093751 762.8008819500158 62.221612304687504Q762.8008819500158 58.62639453125 760.174470328922 56.66078564453125Q757.5480587078282 54.695176757812504 752.5864395672032 54.695176757812504H743.8280245281408ZM743.8280245281408 49.812020507812505H752.5864395672032Q757.279259391422 49.812020507812505 759.7656710125157 47.930411621093754Q762.2520826336095 46.048802734375 762.2520826336095 42.5543876953125Q762.2520826336095 39.0375712890625 759.7656710125157 37.15596240234375Q757.279259391422 35.274353515625 752.5864395672032 35.274353515625H743.8280245281408Z M803.468021110172 63.476000000000006Q804.3192149578282 66.8808232421875 807.0688221355626 68.6840341796875Q809.818429313297 70.4872451171875 814.1752525554845 70.4872451171875Q818.7224634929845 70.4872451171875 821.3376693035314 68.35363623046875Q823.9528751140782 66.22002734375 823.9528751140782 62.535210937500004Q823.9528751140782 59.5559931640625 822.1160689617345 57.831185302734376Q820.2792628093907 56.10637744140625 816.5608477703282 55.680775390625L810.8488477703282 55.008775390625004Q804.7448580242344 54.25837744140625 801.6368631511875 51.13918017578125Q798.5288682781407 48.01998291015625 798.5288682781407 42.5767890625Q798.5288682781407 38.533591796875 800.488864860172 35.55439453125Q802.4488614422032 32.575197265625 805.9992559734533 30.912Q809.5496505047032 29.248802734374998 814.287245719547 29.248802734374998Q819.0136436687657 29.248802734374998 822.5640382000157 30.844801025390623Q826.1144327312658 32.44079931640625 828.1752286297033 35.425598632812495Q830.2360245281408 38.41039794921875 830.5160245281407 42.644H825.1288716961095Q824.3336778484532 38.72397607421875 821.5280723797032 36.61836547851563Q818.7224669109532 34.5127548828125 814.287245719547 34.5127548828125Q809.5048340984532 34.5127548828125 806.7608272625157 36.674363769531254Q804.0168204265782 38.83597265625 804.0168204265782 42.5767890625Q804.0168204265782 45.5560068359375 805.8760262371251 47.2584150390625Q807.735232047672 48.9608232421875 811.4088477703282 49.431224609375L817.1208477703282 50.103224609375005Q823.2696368328283 50.8088232421875 826.355232047672 53.950420166015626Q829.4408272625158 57.09201708984375 829.4408272625158 62.535210937500004Q829.4408272625158 66.52240820312501 827.5424310222813 69.49600512695314Q825.644034782047 72.46960205078126 822.2168409343908 74.11039965820314Q818.7896470867345 75.75119726562501 814.1752525554845 75.75119726562501Q809.437653922672 75.75119726562501 805.8984583660314 74.29519897460938Q802.3592628093908 72.83920068359376 800.3208665691564 70.07840136718751Q798.2824703289219 67.31760205078126 797.9912696453282 63.476000000000006Z"/>   <path fill="#B6FF2E" d="M196.50642589532828 25.12723828125V29.9879931640625H183.96241905939078V77.25200683593751H196.50642589532828V82.11276171875001H178.69846691095327V25.12723828125Z M578.3368204265784 27.412 557.1240245281408 84.42H551.7480723797033L572.9608682781409 27.412Z M871.4184669109533 25.12723828125H889.2264258953282V82.11276171875001H871.4184669109533V77.25200683593751H883.9624737468907V29.9879931640625H871.4184669109533Z"/> </svg>`;
+  // give the SVG an explicit size from its viewBox; some browsers report 0×0 for viewBox-only images
+  const sized = svg => { const v = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/); return svg.replace('<svg ', `<svg width="${v[2]}" height="${v[3]}" `); };
+  const svgImg = src => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(sized(src)); });
+  class Glitch {
+    constructor(canvas, img, fit) { this.c = canvas; this.img = img; this.fit = fit; this.resize(); }
+    resize() {
+      const r = this.c.getBoundingClientRect(), d = devicePixelRatio || 1;
+      this.d = d; this.W = Math.max(2, Math.round(r.width * d)); this.H = Math.max(2, Math.round(r.height * d));
+      this.c.width = this.W; this.c.height = this.H; this.x = this.c.getContext('2d');
+      const iw = this.img.naturalWidth || this.img.width, ih = this.img.naturalHeight || this.img.height;
+      let w = this.W * this.fit, h = w * ih / iw; if (h > this.H * .6) { h = this.H * .6; w = h * iw / ih; }
+      const mk = () => { const t = document.createElement('canvas'); t.width = this.W; t.height = this.H; return t; };
+      this.src = mk(); this.src.getContext('2d').drawImage(this.img, Math.round((this.W - w) / 2), Math.round((this.H - h) / 2), w, h);
+      this.tint = {};
+      for (const [k, col] of Object.entries(FRINGE)) { const t = mk(), tx = t.getContext('2d'); tx.drawImage(this.src, 0, 0); tx.globalCompositeOperation = 'multiply'; tx.fillStyle = col; tx.fillRect(0, 0, this.W, this.H); tx.globalCompositeOperation = 'destination-in'; tx.drawImage(this.src, 0, 0); this.tint[k] = t; }  // each channel keeps the source's own colour, so R+G+B rebuilds acid as acid
+      this.clean();
+    }
+    clean() { this.x.clearRect(0, 0, this.W, this.H); this.x.drawImage(this.src, 0, 0); }
+    frame(fx, k) {
+      const x = this.x, W = this.W, H = this.H, d = this.d;
+      x.clearRect(0, 0, W, H);
+      const jx = fx.jitter ? Math.round(R2(-3, 3) * k) * d : 0, jy = fx.jitter && Math.random() < .3 ? Math.round(R2(-1, 1)) * d : 0;
+      // line shift: rows 1–7px tall; a band takes the hardest hits. Every layer shares the same rows so the fringes follow the shift.
+      let rows = null;
+      if (fx.lines) { rows = []; const band = R2(.2, .8) * H, bw = R2(.06, .22) * H; for (let y = 0; y < H;) { const rh = Math.round(R2(1, 7)) * d, hit = Math.abs(y - band) < bw; const off = (hit ? Math.random() < .75 : Math.random() < .12 * k) ? Math.round(R2(-1, 1) * (hit ? 28 : 9) * k) * d : 0; rows.push([y, Math.min(rh, H - y), off]); y += rh; } }
+      const draw = (img, ox) => { if (!rows) return x.drawImage(img, ox + jx, jy); for (const [y, h, off] of rows) if (h > 0) x.drawImage(img, 0, y, W, h, ox + jx + off, y + jy, W, h); };
+      x.globalAlpha = fx.dropout && Math.random() < .3 + .3 * k ? R2(.15, .5) : 1;
+      if (fx.ca) {
+        // red drifts right, blue left, green stays near centre: 1–3px, then a softening pass of the clean image so fringes stay faint
+        const ca = Math.max(1, Math.round(R2(.6, 2.6) * k)) * d, a0 = x.globalAlpha;
+        x.globalCompositeOperation = 'lighter';
+        draw(this.tint.r, ca); draw(this.tint.g, Math.round(R2(-.4, .4) * ca)); draw(this.tint.b, -ca);
+        x.globalCompositeOperation = 'source-over'; x.globalAlpha = a0 * .45; draw(this.src, 0); x.globalAlpha = a0;
+      } else draw(this.src, 0);
+      x.globalAlpha = 1;
+      if (fx.blocks) { const n = 1 + Math.floor(R2(0, 4) * k); for (let i = 0; i < n; i++) { const bw = R2(.05, .28) * W, bh = Math.max(2 * d, R2(.02, .09) * H), bx = R2(.1, .9) * W - bw / 2, by = R2(.25, .75) * H, dx = Math.round(R2(-1, 1) * 36 * k) * d; x.clearRect(bx, by, bw, bh); x.drawImage(this.src, Math.max(0, bx), by, bw, bh, bx + dx, by, bw, bh); if (Math.random() < .3) { x.fillStyle = 'rgba(182,255,46,.9)'; x.fillRect(bx + dx, by + bh * .45, bw * R2(.2, .8), Math.max(d, bh * .12)); } } }
+    }
+    async burst(fx, k = .6, live = () => true) {
+      const n = Math.round(7 + 6 * k);
+      for (let i = 0; i < n; i++) { if (!live()) break; const env = Math.sin(Math.PI * (i + .5) / n); this.frame(fx, k * (.4 + .6 * env) * R2(.7, 1)); await wait(R2(26, 62)); }
+      this.clean();
+    }
+    async hold(fx, k, ms, live = () => true) { const t0 = performance.now(); while (performance.now() - t0 < ms && live()) { this.frame(fx, k); await wait(R2(40, 80)); } this.clean(); }
+  }
+  const LAYERS = [
+    ['ca', 'Chromatic split', 'Red, green and blue channels drift 1–3px apart, red right and blue left. Thin, faint fringes that only show on edges.'],
+    ['lines', 'Line shift', 'The image is cut into rows 1–7px tall. One band slides hard; scattered rows slip a little.'],
+    ['blocks', 'Block tear', 'Up to four rectangles are cut out and displaced sideways. One in three leaves an acid sliver.'],
+    ['jitter', 'Frame jitter', 'The whole frame jumps 1–3px, mostly sideways. Hard cuts, never eased.'],
+    ['dropout', 'Dropout', 'A frame loses 50–85% of its brightness, as if the signal browned out for 40ms.'],
+  ];
+  const glx = { fx: { ca: true, lines: true, blocks: true, jitter: true, dropout: true }, k: .6, eng: null, tok: 0 };
+  $('#glx-layers').innerHTML = LAYERS.map(([id, n]) => `<button class="chip" type="button" data-l="${id}" aria-pressed="true">${n}</button>`).join('');
+  $('#glx-cards').innerHTML = LAYERS.map(([id, n, d]) => `<article class="layer"><div class="lstage ticks"><canvas data-lc="${id}" aria-hidden="true"></canvas></div><h3>${n}</h3><p>${d}</p><button class="btn" type="button" data-lr="${id}" ${reduce ? 'disabled' : ''}>Replay</button></article>`).join('');
+  const layerEng = {};
+  (async () => {
+    const [lockImg, markImg] = await Promise.all([svgImg(LOCKUP_SVG), svgImg(MARK_SVG)]);
+    glx.eng = new Glitch($('#glx-canvas'), lockImg, .62);
+    $$('[data-lc]').forEach(c => { layerEng[c.dataset.lc] = new Glitch(c, markImg, .42); });
+    const idleS = $('[data-s="idle"]'); if (idleS) idleS._g = new Glitch($('canvas', idleS), markImg, .3);
+    addEventListener('resize', () => { glx.eng.resize(); Object.values(layerEng).forEach(e => e.resize()); idleS && idleS._g.resize(); });
+    scheduleAuto();
+  })();
+  const fire = () => { if (!glx.eng || reduce) return; const t = ++glx.tok; glx.eng.burst(glx.fx, glx.k, () => t === glx.tok); };
+  $('#glx-go').addEventListener('click', () => { fire(); });
+  $('#glx-int').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $$('#glx-int button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); glx.k = +b.dataset.k; fire(); });
+  $('#glx-layers').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(on)); glx.fx[b.dataset.l] = on; });
+  document.addEventListener('click', e => { const b = e.target.closest('[data-lr]'); if (!b || reduce) return; const eng = layerEng[b.dataset.lr]; if (!eng) return; eng._t = (eng._t || 0) + 1; const t = eng._t; eng.hold({ [b.dataset.lr]: true }, .75, 1400, () => eng._t === t); });
+  let autoT = null, nextAt = 0;
+  function scheduleAuto() {
+    clearTimeout(autoT); if (reduce || !$('#glx-auto').checked) { $('#glx-read').textContent = 'Idle · auto off'; return; }
+    const ms = R2(8000, 20000); nextAt = performance.now() + ms;
+    autoT = setTimeout(() => { if (!document.hidden) fire(); scheduleAuto(); }, ms);
+  }
+  setInterval(() => { if ($('#glx-auto').checked && nextAt) $('#glx-read').textContent = `Idle · next in ${Math.max(0, (nextAt - performance.now()) / 1000).toFixed(1)}s`; }, 100);
+  $('#glx-auto').addEventListener('change', scheduleAuto);
+
+
+  /* ================= LIVE CHARTS (SVG) =================
+     Single series use brand Acid. Multi-series use the validated chart palette (dark band, CVD-checked):
+     s1 #70a600 · s2 #0486d3 · s3 #c13b9f · other #5a5452. Status colours only ever mean status. */
+  const CH = { surface: '#0a0909', acid: '#b6ff2e', s1: '#70a600', s2: '#0486d3', s3: '#c13b9f', other: '#5a5452', ok: '#4dff88', warn: '#ffa21f', down: '#ff2e3a', bone: '#ede6e1', ash: '#8e8380' };
+  const svgN = (tag, attrs = {}, parent) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const niceStep = (max, n = 4) => { const raw = Math.max(max, 1e-6) / n, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
+  const easeSettle = t => 1 - Math.pow(1 - t, 4);
+  const easeSnap = t => { const c = 1.25; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };  // small overshoot, like Snap
+  const nf = (v, d = 0) => Number(v).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  const chartReduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // one rAF loop for every live chart; charts off screen don't render
+  const LIVE = new Set(); let liveRAF = 0;
+  const liveIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.target._chart) e.target._chart.visible = e.isIntersecting; })) : null;
+  function liveLoop(now) { LIVE.forEach(c => { if (c.visible) c.render(now); }); liveRAF = requestAnimationFrame(liveLoop); }
+  function addLive(c) { LIVE.add(c); c.host._chart = c; c.visible = true; if (liveIO) liveIO.observe(c.host); if (!liveRAF) liveRAF = requestAnimationFrame(liveLoop); }
+
+  function tipFor(host) { let t = host.querySelector(':scope > .tt'); if (!t) { t = document.createElement('div'); t.className = 'tt'; t.hidden = true; host.appendChild(t); } return t; }
+  function showTip(tt, host, x, y, html) {
+    tt.innerHTML = html; tt.hidden = false;
+    const hw = host.clientWidth, tw = tt.offsetWidth, th = tt.offsetHeight;
+    tt.style.left = (x + 14 + tw > hw ? Math.max(0, x - tw - 14) : x + 14) + 'px';
+    tt.style.top = Math.max(0, y - th / 2) + 'px';
+  }
+
+  /* --- table view toggle: every chart can be read as a table --- */
+  function tableToggle(btn, wrap, getTable) {
+    btn.addEventListener('click', () => {
+      const on = btn.getAttribute('aria-pressed') !== 'true'; btn.setAttribute('aria-pressed', String(on));
+      const plot = wrap.querySelector('.chart'), tab = wrap.querySelector('.ch-table');
+      if (on) { const [head, rows] = getTable(); tab.innerHTML = `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
+      plot.hidden = on; tab.hidden = !on;
+    });
+  }
+
+  /* --- LiveLine: time window scrolls at a constant rate; y-axis rescales on Settle; optional threshold events --- */
+  class LiveLine {
+    constructor(host, o) {
+      this.host = host;
+      this.o = Object.assign({ height: 200, windowS: 60, rate: 1000, unit: '', dec: 0, min: 0, fixedMax: null, thresh: null, threshLabel: '', area: true, L: 40, R: 74, T: 12, B: 24, label: 'Chart' }, o);
+      const now = performance.now();
+      this.series = o.series.map(s => { const d = []; let v = s.start; for (let i = this.o.windowS + 3; i >= 0; i--) { v = s.gen(v); d.push({ t: now - i * this.o.rate, v }); } return { ...s, data: d }; });
+      this.yMax = this.targetMax(); this.anim = null; this.paused = false; this.pauseT = 0; this.hx = null; this.flash = -1e9; this.events = []; this.lastNow = now;
+      this.svg = svgN('svg', { role: 'img', 'aria-label': this.o.label }, host);
+      const id = 'clip' + Math.random().toString(36).slice(2, 8);
+      this.clipR = svgN('rect', {}, svgN('clipPath', { id }, svgN('defs', {}, this.svg)));
+      this.gGrid = svgN('g', {}, this.svg); this.gThr = svgN('g', {}, this.svg);
+      this.gPlot = svgN('g', { 'clip-path': `url(#${id})` }, this.svg);
+      this.areaP = this.o.area && this.series.length === 1 ? svgN('path', { fill: hexA(this.series[0].color, .1) }, this.gPlot) : null;
+      this.lines = this.series.map(s => svgN('path', { class: 'ln', stroke: s.color }, this.gPlot));
+      this.gEvt = svgN('g', {}, this.gPlot);
+      this.gX = svgN('g', {}, this.svg); this.gEnd = svgN('g', {}, this.svg); this.gHover = svgN('g', {}, this.svg);
+      this.hit = svgN('rect', { class: 'hit' }, this.svg);
+      this.tt = tipFor(host);
+      this.hit.addEventListener('pointermove', e => { const r = this.svg.getBoundingClientRect(); this.hx = e.clientX - r.left; if (chartReduce || this.paused) this.render(performance.now()); });
+      this.hit.addEventListener('pointerleave', () => { this.hx = null; this.tt.hidden = true; if (chartReduce || this.paused) this.render(performance.now()); });
+      addLive(this);
+      this.timer = setInterval(() => this.push(), this.o.rate);
+      this.render(now);
+    }
+    targetMax() { if (this.o.fixedMax) return this.o.fixedMax; let m = 0; for (const s of this.series) for (const d of s.data) m = Math.max(m, d.v); m = Math.max(m * 1.12, this.o.thresh ? this.o.thresh * 1.1 : 0); const st = niceStep(m); return Math.ceil(m / st) * st; }
+    curMax(now) { if (!this.anim) return this.yMax; const p = chartReduce ? 1 : Math.min(1, (now - this.anim.t0) / 360), v = this.anim.from + (this.anim.to - this.anim.from) * easeSettle(p); if (p >= 1) { this.yMax = this.anim.to; this.anim = null; } return v; }
+    setPaused(p) { this.paused = p; if (p) this.pauseT = this.lastNow; else { const dt = performance.now() - this.pauseT; this.series.forEach(s => s.data.forEach(d => d.t += dt)); this.events.forEach(e => e.t += dt); } }
+    push() {
+      if (this.paused) return;
+      const now = performance.now(), cap = this.o.windowS * 1000 / this.o.rate + 5;
+      for (const s of this.series) { s.data.push({ t: now, v: s.gen(s.data[s.data.length - 1].v) }); while (s.data.length > cap) s.data.shift(); }
+      const tm = this.targetMax(), cur = this.anim ? this.anim.to : this.yMax;
+      if (tm !== cur) this.anim = { from: this.curMax(now), to: tm, t0: now };
+      if (this.o.thresh != null) {
+        const d = this.series[0].data, a = d[d.length - 2].v, b = d[d.length - 1].v;
+        if (a < this.o.thresh && b >= this.o.thresh) { this.flash = now; this.events.push({ t: now - this.o.rate * (b - this.o.thresh) / Math.max(1e-6, b - a) }); if (this.onCross) this.onCross(b); }
+      }
+      this.events = this.events.filter(e => now - e.t < this.o.windowS * 1000 + 2000);
+      if (chartReduce) this.render(now);
+    }
+    valAt(s, t) { const d = s.data; for (let i = d.length - 1; i > 0; i--) if (d[i - 1].t <= t) { const a = d[i - 1], b = d[i], k = Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))); return a.v + (b.v - a.v) * k; } return d[0].v; }
+    render(now) {
+      this.lastNow = now;
+      const o = this.o, W = Math.max(200, this.host.clientWidth), H = o.height, L = o.L, R = o.R, T = o.T, B = o.B, pw = W - L - R, ph = H - T - B, span = o.windowS * 1000;
+      this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`); this.svg.setAttribute('height', H);
+      // the right edge shows "one sample ago", so the newest point slides in from off-plot instead of popping in
+      const tRef = this.paused ? this.pauseT - o.rate : (chartReduce ? this.series[0].data[this.series[0].data.length - 1].t : now - o.rate);
+      const yMax = this.curMax(now), yTo = this.anim ? this.anim.to : yMax, x = t => L + pw - (tRef - t) / span * pw, y = v => T + ph - (v - o.min) / (yMax - o.min) * ph;
+      this.clipR.setAttribute('x', L); this.clipR.setAttribute('y', T - 6); this.clipR.setAttribute('width', pw); this.clipR.setAttribute('height', ph + 12);
+      // grid + y ticks (ticks come from the target scale and slide while it settles)
+      const st = niceStep(yTo - o.min); let g = '';
+      for (let v = o.min; v <= yTo + 1e-9; v += st) { const yy = Math.round(y(v)) + .5; if (yy < T - 2) continue; g += `<line class="${v === o.min ? 'base' : 'gl'}" x1="${L}" x2="${L + pw}" y1="${yy}" y2="${yy}"/><text class="tick" x="${L - 8}" y="${yy + 3}" text-anchor="end">${nf(v, st < 1 ? 1 : 0)}</text>`; }
+      this.gGrid.innerHTML = g;
+      // x axis: fixed relative-time ticks; the data scrolls past them
+      let xs = ''; const step = o.windowS >= 60 ? 15 : o.windowS >= 30 ? 10 : 5;
+      for (let s = 0; s <= o.windowS; s += step) { const xx = Math.round(L + pw - s / o.windowS * pw) + .5; xs += `<line class="base" x1="${xx}" x2="${xx}" y1="${T + ph}" y2="${T + ph + 4}"/><text class="tick" x="${xx}" y="${T + ph + 15}" text-anchor="${s === 0 ? 'end' : 'middle'}">${s === 0 ? 'now' : '−' + s + 's'}</text>`; }
+      this.gX.innerHTML = xs;
+      // lines + area
+      this.series.forEach((s, i) => { const pts = s.data.filter(d => x(d.t) > L - 40).map(d => `${x(d.t).toFixed(1)},${y(d.v).toFixed(1)}`); this.lines[i].setAttribute('d', 'M' + pts.join(' L')); if (i === 0 && this.areaP) this.areaP.setAttribute('d', `M${pts.join(' L')} L${x(s.data[s.data.length - 1].t).toFixed(1)},${T + ph} L${L - 40},${T + ph} Z`); });
+      // threshold: dashed by convention; it strobes once when crossed
+      if (o.thresh != null) {
+        const ty = Math.round(y(o.thresh)) + .5, age = now - this.flash;
+        const lit = age < 340 ? [1, 0, 1, .35, 1][Math.min(4, Math.floor(age / 68))] : null;
+        this.gThr.innerHTML = `<line class="thr" x1="${L}" x2="${L + pw}" y1="${ty}" y2="${ty}" ${lit != null ? `style="opacity:${lit};stroke:${CH.warn}"` : ''}/><text class="thr-l" x="${L + 6}" y="${ty - 5}">${o.threshLabel || nf(o.thresh) + o.unit}</text>`;
+        this.gEvt.innerHTML = this.events.map(e => { const ex = Math.round(x(e.t)) + .5; return `<line class="evt" x1="${ex}" x2="${ex}" y1="${T + ph - 7}" y2="${T + ph}"/><path d="M${ex - 3} ${T + ph - 10} h6 l-3 4 z" fill="${CH.warn}"/>`; }).join('');
+      }
+      // end markers + direct end labels
+      let ends = ''; const ev = this.series.map(s => this.valAt(s, tRef));
+      const ly = ev.map(v => y(v)); if (ly.length === 2 && Math.abs(ly[0] - ly[1]) < 14) { const m = (ly[0] + ly[1]) / 2, up = ly[0] < ly[1] ? 0 : 1; ly[up] = m - 7; ly[1 - up] = m + 7; }
+      this.series.forEach((s, i) => { const above = o.thresh != null && i === 0 && ev[i] >= o.thresh; ends += `<circle cx="${L + pw}" cy="${y(ev[i]).toFixed(1)}" r="4" fill="${above ? CH.warn : s.color}" stroke="${CH.surface}" stroke-width="2"/><text class="endv" x="${L + pw + 10}" y="${(ly[i] + 4).toFixed(1)}">${this.series.length > 1 ? `<tspan class="u">${s.name} </tspan>` : ''}${nf(ev[i], o.dec)}<tspan class="u"> ${o.unit}</tspan></text>`; });
+      this.gEnd.innerHTML = ends;
+      this.hit.setAttribute('x', L); this.hit.setAttribute('y', T); this.hit.setAttribute('width', pw); this.hit.setAttribute('height', ph);
+      // hover: crosshair snaps to the nearest sample
+      if (this.hx != null && this.hx >= L && this.hx <= L + pw) {
+        const tq = tRef - (L + pw - this.hx) / pw * span, d0 = this.series[0].data; let k = 0, best = 1e18; d0.forEach((d, i) => { const dd = Math.abs(d.t - tq); if (dd < best) { best = dd; k = i; } });
+        const tx = x(d0[k].t); let hv = `<line class="xh" x1="${Math.round(tx) + .5}" x2="${Math.round(tx) + .5}" y1="${T}" y2="${T + ph}"/>`;
+        this.series.forEach(s => { hv += `<circle cx="${tx}" cy="${y(s.data[k].v)}" r="4" fill="${s.color}" stroke="${CH.surface}" stroke-width="2"/>`; });
+        this.gHover.innerHTML = hv;
+        const ago = Math.max(0, Math.round((tRef - d0[k].t) / 1000));
+        showTip(this.tt, this.host, tx, y(this.series[0].data[k].v), `<span class="h">${ago === 0 ? 'now' : ago + 's ago'}</span>` + this.series.map(s => `<span class="r"><span><i style="background:${s.color}"></i>${s.name}</span><b>${nf(s.data[k].v, o.dec)} ${o.unit}</b></span>`).join(''));
+      } else this.gHover.innerHTML = '';
+    }
+    table() { const d0 = this.series[0].data.slice(-20).reverse(); return [['Time', ...this.series.map(s => `${s.name} (${this.o.unit})`)], d0.map((d, i) => { const k = this.series[0].data.length - 1 - i; const ago = Math.round((this.series[0].data[this.series[0].data.length - 1].t - d.t) / 1000); return [ago === 0 ? 'now' : `−${ago}s`, ...this.series.map(s => nf(s.data[k].v, this.o.dec))]; })]; }
+  }
+
+  /* --- LiveColumns: rolling columns slide left at a constant rate; each new column grows on Snap --- */
+  class LiveColumns {
+    constructor(host, o) {
+      this.host = host;
+      this.o = Object.assign({ height: 200, n: 30, rate: 1000, unit: '', color: CH.acid, L: 40, R: 16, T: 18, B: 24, label: 'Chart' }, o);
+      const now = performance.now(); let v = o.start; this.data = [];
+      for (let i = this.o.n + 1; i >= 0; i--) { v = o.gen(v); this.data.push({ t: now - i * this.o.rate, v }); }
+      this.yMax = this.targetMax(); this.anim = null; this.paused = false; this.hi = null;
+      this.svg = svgN('svg', { role: 'img', 'aria-label': this.o.label }, host);
+      this.gGrid = svgN('g', {}, this.svg); this.gBars = svgN('g', {}, this.svg); this.gX = svgN('g', {}, this.svg); this.gLab = svgN('g', {}, this.svg);
+      this.tt = tipFor(host);
+      this.svg.addEventListener('pointermove', e => { const r = this.svg.getBoundingClientRect(); this.px = e.clientX - r.left; });
+      this.svg.addEventListener('pointerleave', () => { this.px = null; this.tt.hidden = true; });
+      addLive(this); this.timer = setInterval(() => this.push(), this.o.rate); this.render(now);
+    }
+    targetMax() { let m = 0; for (const d of this.data) m = Math.max(m, d.v); m *= 1.15; const st = niceStep(m); return Math.ceil(m / st) * st; }
+    curMax(now) { if (!this.anim) return this.yMax; const p = chartReduce ? 1 : Math.min(1, (now - this.anim.t0) / 360), v = this.anim.from + (this.anim.to - this.anim.from) * easeSettle(p); if (p >= 1) { this.yMax = this.anim.to; this.anim = null; } return v; }
+    setPaused(p) { this.paused = p; if (!p) { const dt = performance.now() - this.pauseT; this.data.forEach(d => d.t += dt); } else this.pauseT = this.lastNow; }
+    push() { if (this.paused) return; const now = performance.now(); this.data.push({ t: now, v: this.o.gen(this.data[this.data.length - 1].v) }); while (this.data.length > this.o.n + 3) this.data.shift(); const tm = this.targetMax(); if (tm !== (this.anim ? this.anim.to : this.yMax)) this.anim = { from: this.curMax(now), to: tm, t0: now }; if (chartReduce) this.render(now); }
+    render(now) {
+      this.lastNow = now;
+      const o = this.o, W = Math.max(200, this.host.clientWidth), H = o.height, L = o.L, R = o.R, T = o.T, B = o.B, pw = W - L - R, ph = H - T - B;
+      this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`); this.svg.setAttribute('height', H);
+      const slot = pw / o.n, bw = Math.min(24, slot - 4), tRef = this.paused ? this.pauseT : now, last = this.data[this.data.length - 1];
+      const shift = chartReduce ? 0 : Math.min(1, (tRef - last.t) / o.rate);  // 0 → 1 across one interval
+      const yMax = this.curMax(now), yTo = this.anim ? this.anim.to : yMax, y = v => T + ph - v / yMax * ph;
+      const stp = niceStep(yTo); let g = '';
+      for (let v = 0; v <= yTo + 1e-9; v += stp) { const yy = Math.round(y(v)) + .5; g += `<line class="${v === 0 ? 'base' : 'gl'}" x1="${L}" x2="${L + pw}" y1="${yy}" y2="${yy}"/><text class="tick" x="${L - 8}" y="${yy + 3}" text-anchor="end">${nf(v)}</text>`; }
+      this.gGrid.innerHTML = g;
+      let b = '', peak = null; const n = this.data.length, base = T + ph;
+      this.data.forEach((d, i) => {
+        const idx = n - 1 - i, cx = L + pw - (idx + 1 - shift) * slot + (slot - bw) / 2; if (cx < L - 1 || cx + bw > L + pw + 1) return;
+        const grow = idx === 0 && !chartReduce ? easeSnap(Math.min(1, (tRef - d.t) / 200)) : 1, h = Math.max(0, (base - y(d.v)) * grow), r = Math.min(4, h, bw / 2), top = base - h;
+        const hov = this.px != null && this.px >= cx - 2 && this.px <= cx + bw + 2;
+        b += `<path class="mk-bar${hov ? ' on' : ''}" d="M${cx} ${base} V${top + r} Q${cx} ${top} ${cx + r} ${top} H${cx + bw - r} Q${cx + bw} ${top} ${cx + bw} ${top + r} V${base} Z" fill="${o.color}"/>`;
+        if (!peak || d.v > peak.v) peak = { v: d.v, x: cx + bw / 2, y: top };
+        if (hov) showTip(this.tt, this.host, cx + bw / 2, top, `<span class="h">${idx === 0 ? 'now' : idx + 's ago'}</span><span class="r"><span>${o.series || 'value'}</span><b>${nf(d.v)} ${o.unit}</b></span>`);
+      });
+      this.gBars.innerHTML = b;
+      this.gLab.innerHTML = peak ? `<text class="endv" x="${peak.x}" y="${peak.y - 6}" text-anchor="middle">${nf(peak.v)}</text>` : '';
+      let xs = ''; for (const s of [0, 10, 20, 30]) { if (s > o.n) continue; const xx = Math.round(L + pw - s / o.n * pw) + .5; xs += `<text class="tick" x="${xx}" y="${base + 15}" text-anchor="${s === 0 ? 'end' : 'middle'}">${s === 0 ? 'now' : '−' + s + 's'}</text>`; }
+      this.gX.innerHTML = xs;
+    }
+    table() { return [['Time', `${this.o.series || 'Value'} (${this.o.unit})`], this.data.slice().reverse().map((d, i) => [i === 0 ? 'now' : `−${i}s`, nf(d.v)])]; }
+  }
+
+  /* --- static: horizontal bars (4px rounded data-end, square at the baseline, ≤24px thick) --- */
+  function barsChart(host, rows, o = {}) {
+    const W = Math.max(240, host.clientWidth), bh = 14, gap = 16, L = o.L || 78, R = 64, T = 4, H = T + rows.length * (bh + gap) + 18;
+    const max = o.max || Math.max(...rows.map(r => r.v)), pw = W - L - R, x = v => L + v / max * pw;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${o.label || ''}">`;
+    rows.forEach((r, i) => {
+      const yy = T + i * (bh + gap), x1 = x(r.v), rr = Math.min(4, x1 - L);
+      s += `<text class="tick" x="${L - 10}" y="${yy + bh / 2 + 3}" text-anchor="end">${r.k}</text><rect x="${L}" y="${yy}" width="${pw}" height="${bh}" fill="${hexA(CH.bone, .04)}"/>`;
+      s += `<path class="mk-bar" data-i="${i}" d="M${L} ${yy} H${x1 - rr} Q${x1} ${yy} ${x1} ${yy + rr} V${yy + bh - rr} Q${x1} ${yy + bh} ${x1 - rr} ${yy + bh} H${L} Z" fill="${r.c || CH.acid}"/>`;
+      s += `<text class="endv" x="${x1 + 8}" y="${yy + bh / 2 + 4}">${nf(r.v, o.dec || 0)}<tspan class="u"> ${o.unit || ''}</tspan></text>`;
+    });
+    if (o.thresh != null) { const tx = Math.round(x(o.thresh)) + .5; s += `<line class="thr" x1="${tx}" x2="${tx}" y1="${T - 2}" y2="${H - 16}"/><text class="thr-l" x="${tx}" y="${H - 4}" text-anchor="middle">${o.threshLabel}</text>`; }
+    host.innerHTML = s + '</svg>';
+    const tt = tipFor(host);
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', e => { const r = rows[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x + bb.width, bb.y + bh / 2, `<span class="h">${r.k}</span><span class="r"><span>${o.series || 'value'}</span><b>${nf(r.v, o.dec || 0)} ${o.unit || ''}</b></span>${r.note ? `<span class="r"><span>${r.note}</span></span>` : ''}`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- static: one stacked bar with 2px surface gaps between segments --- */
+  function stackChart(host, segs, o = {}) {
+    const W = Math.max(240, host.clientWidth), H = 40, total = segs.reduce((a, s) => a + s.v, 0), gapPx = 2;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${o.label || ''}">`, x0 = 0;
+    const usable = W - gapPx * (segs.length - 1);
+    segs.forEach((g, i) => { const w = g.v / total * usable, last = i === segs.length - 1, r = last ? 4 : 0; s += `<path class="mk-bar" data-i="${i}" d="M${x0} 8 H${x0 + w - r} ${r ? `Q${x0 + w} 8 ${x0 + w} ${8 + r} V${32 - r} Q${x0 + w} 32 ${x0 + w - r} 32` : `V32`} H${x0} Z" fill="${g.c}"/>`; x0 += w + gapPx; });
+    host.innerHTML = s + '</svg>';
+    const tt = tipFor(host);
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', () => { const g = segs[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x + bb.width / 2, 4, `<span class="h">${g.k}</span><span class="r"><span>${o.series || 'value'}</span><b>${nf(g.v, 1)} ${o.unit || ''} · ${Math.round(g.v / total * 100)}%</b></span>`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- static: histogram with p50 / p95 line markers --- */
+  function histChart(host, bins, o = {}) {
+    const W = Math.max(240, host.clientWidth), H = o.height || 170, L = 40, R = 12, T = 22, B = 24, pw = W - L - R, ph = H - T - B, n = bins.length, slot = pw / n, bw = Math.min(24, slot - 2);
+    const max = Math.max(...bins.map(b => b.c)), st = niceStep(max), top = Math.ceil(max / st) * st, y = v => T + ph - v / top * ph;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${o.label || ''}">`;
+    for (let v = 0; v <= top; v += st) { const yy = Math.round(y(v)) + .5; s += `<line class="${v ? 'gl' : 'base'}" x1="${L}" x2="${L + pw}" y1="${yy}" y2="${yy}"/><text class="tick" x="${L - 8}" y="${yy + 3}" text-anchor="end">${nf(v)}</text>`; }
+    bins.forEach((b, i) => { const x0 = L + i * slot + (slot - bw) / 2, tp = y(b.c), r = Math.min(4, T + ph - tp, bw / 2); s += `<path class="mk-bar" data-i="${i}" d="M${x0} ${T + ph} V${tp + r} Q${x0} ${tp} ${x0 + r} ${tp} H${x0 + bw - r} Q${x0 + bw} ${tp} ${x0 + bw} ${tp + r} V${T + ph} Z" fill="${CH.acid}"/>`; if (i % 2 === 0) s += `<text class="tick" x="${x0 + bw / 2}" y="${T + ph + 15}" text-anchor="middle">${b.lo}</text>`; });
+    (o.marks || []).forEach(m => { const mx = Math.round(L + (m.at / bins.length) * pw) + .5; s += `<line class="thr" x1="${mx}" x2="${mx}" y1="${T - 6}" y2="${T + ph}"/><text class="thr-l" x="${mx + 4}" y="${T - 10}">${m.k} ${m.v}</text>`; });
+    host.innerHTML = s + '</svg>';
+    const tt = tipFor(host);
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', () => { const b = bins[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x + bb.width, bb.y, `<span class="h">${b.lo}–${b.hi} ms</span><span class="r"><span>requests</span><b>${nf(b.c)}</b></span>`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- static: 90-day status strip (status colours carry a shape in the legend and a word in the tooltip) --- */
+  function uptimeChart(host, days) {
+    const W = Math.max(240, host.clientWidth), H = 46, n = days.length, gap = 2, bw = (W - gap * (n - 1)) / n;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="90 day uptime">`;
+    days.forEach((d, i) => { const x0 = i * (bw + gap), c = d.s === 'ok' ? CH.ok : d.s === 'warn' ? CH.warn : CH.down, h = d.s === 'ok' ? 28 : 34; s += `<rect class="mk-bar" data-i="${i}" x="${x0.toFixed(2)}" y="${34 - h}" width="${bw.toFixed(2)}" height="${h}" fill="${c}" ${d.s === 'ok' ? 'opacity=".55"' : ''}/>`; });
+    s += `<text class="tick" x="0" y="${H - 1}">90 days ago</text><text class="tick" x="${W}" y="${H - 1}" text-anchor="end">today</text></svg>`;
+    host.innerHTML = s;
+    const tt = tipFor(host), W2 = { ok: 'Operational', warn: 'Degraded', down: 'Outage' };
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', () => { const d = days[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x, 0, `<span class="h">${d.date}</span><span class="r"><span>${W2[d.s]}</span><b>${d.up}%</b></span>${d.note ? `<span class="r"><span>${d.note}</span></span>` : ''}`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- generators for example data --- */
+  const walk = (lo, hi, vol) => v => Math.min(hi, Math.max(lo, v + (Math.random() - .5) * vol + (((lo + hi) / 2) - v) * .04));
+  const bursty = (base, vol, p, amp) => v => Math.max(1, base + (Math.random() - .5) * vol + (Math.random() < p ? amp * (.5 + Math.random()) : 0) + (v - base) * .35);
+
+  /* ---------- graphs in motion ---------- */
+  const threshGen = v => { let n = v + (Math.random() - .5) * 10 + (64 - v) * .06; if (Math.random() < .12) n += 18 + Math.random() * 10; return Math.min(99, Math.max(10, n)); };
+  let spikeT = 0; const rescaleGen = v => { spikeT++; const base = 40 + (Math.random() - .5) * 14; return spikeT % 9 === 0 ? 180 + Math.random() * 120 : spikeT % 9 === 1 ? 120 : base + (v - base) * .3; };
+  new LiveLine($('#m-scroll'), { label: 'Live scroll demo', series: [{ name: 'load', color: CH.acid, start: 50, gen: walk(10, 90, 14) }], unit: '%', fixedMax: 100, windowS: 30, height: 190 });
+  new LiveLine($('#m-rescale'), { label: 'Rescale demo', series: [{ name: 'egress', color: CH.acid, start: 40, gen: rescaleGen }], unit: 'Mb/s', windowS: 30, height: 190 });
+  new LiveColumns($('#m-push'), { label: 'Column push demo', series: 'requests', unit: 'req/s', n: 20, start: 120, gen: bursty(120, 50, .1, 150), height: 190 });
+  new LiveLine($('#m-thresh'), { label: 'Threshold event demo', series: [{ name: 'cpu', color: CH.acid, start: 60, gen: threshGen }], unit: '%', fixedMax: 100, thresh: 80, threshLabel: '80% alert', windowS: 30, height: 190 });
+
+
+  /* ================= DOT FIELD · IDLE (Sea) =================
+     Runs after ignition. The dots never move. Their grey shifts very slightly with a slow height field,
+     like ocean swell seen from straight above: a few long waves crossing at different angles and speeds,
+     summed so they interfere. Greys only, about ±14% around the resting brightness. */
+  const SEA_WAVES = [  // wavelength px, direction deg, speed px/s, weight
+    [620, 18, 9, .34], [430, 112, 7, .26], [300, 205, 11, .2], [760, 290, 6, .2],
+  ].map(([l, deg, v, w], i) => { const a = deg * Math.PI / 180; return { kx: Math.cos(a) * 2 * Math.PI / l, ky: Math.sin(a) * 2 * Math.PI / l, w: v * 2 * Math.PI / l, a: w, p: i * 1.7 }; });
+  const FIELD_MODES = { sea: { name: 'Sea', desc: 'The dots stay still. Their grey rises and falls by about 14% with a slow height field, like ocean swell seen from above: four long waves at different angles and speeds, crossing and interfering.' } };
+  function fieldIdle(canvas, o = {}) {
+    const st = { k: o.k == null ? 1 : o.k, origin: o.origin || null, ramp: 0, running: false, raf: 0, t0: performance.now(), visible: true };
+    const reduceF = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, dpr = 1;
+    const size = () => { const r = canvas.getBoundingClientRect(); dpr = devicePixelRatio || 1; W = r.width; H = r.height; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); };
+    const pos = () => { if (st.origin) { const a = st.origin(), r = canvas.getBoundingClientRect(); return [a.x - r.left, a.y - r.top]; } return [W / 2, H / 2]; };
+    function frame(now) {
+      const t = (now - st.t0) / 1000, amp = .14 * st.k * st.ramp;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const [cx, cy] = pos(), max = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy));
+      for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+        let h = 0; for (const w of SEA_WAVES) h += w.a * Math.sin(gx * w.kx + gy * w.ky - t * w.w + w.p);
+        const rest = .12 + Math.max(0, 1 - Math.hypot(gx - cx, gy - cy) / max) * .2;   // same resting grey as the end of ignition
+        ctx.fillStyle = `rgba(237,230,225,${Math.max(.04, rest + h * amp).toFixed(3)})`;
+        ctx.fillRect(gx - .75, gy - .75, 1.5, 1.5);
+      }
+    }
+    function loop(now) { if (!st.running) return; if (st.ramp < 1) st.ramp = Math.min(1, st.ramp + 1 / 120); if (st.visible && !document.hidden) frame(now); st.raf = requestAnimationFrame(loop); }
+    size(); addEventListener('resize', () => { size(); if (!st.running) frame(performance.now()); });
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => st.visible = e.isIntersecting)).observe(canvas);
+    return {
+      start(rampIn = true) { if (reduceF) { st.ramp = 0; frame(performance.now()); return; } st.ramp = rampIn ? 0 : 1; if (!st.running) { st.running = true; st.raf = requestAnimationFrame(loop); } },
+      stop() { st.running = false; cancelAnimationFrame(st.raf); },
+      set(p) { Object.assign(st, p); if (!st.running) frame(performance.now()); },
+      resize: size,
+    };
+  }
+
+  /* ---------- dot field idle: demo stage ---------- */
+  $('#idle-canvas').parentElement.querySelector('span[style*="font-size:40px"]').innerHTML = lockHTML();
+  const idleDemo = fieldIdle($('#idle-canvas'), { k: 1 });
+  $('#idle-modes').innerHTML = Object.entries(FIELD_MODES).map(([k, v]) => `<button class="chip" type="button" data-m="${k}" aria-pressed="true">${v.name}</button>`).join('');
+  const idleSet = m => { $('#idle-desc').textContent = FIELD_MODES[m].desc; };
+  $('#idle-modes').addEventListener('click', e => { const c = e.target.closest('.chip'); if (c) idleSet(c.dataset.m); });
+  $('#idle-k').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $$('#idle-k button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); idleDemo.set({ k: +b.dataset.k }); $('#idle-read').textContent = 'Sea · amount ' + b.dataset.k; });
+  let idleTok = 0;
+  $('#idle-reignite').addEventListener('click', () => { const t = ++idleTok, c = $('#idle-canvas'); idleDemo.stop(); ignite(c, () => t === idleTok, .5, .5); setTimeout(() => { if (t === idleTok) { idleDemo.resize(); idleDemo.start(true); } }, IGN_HOLD + IGN_DUR + 30); });
+  idleSet('sea'); idleDemo.start(false);
+
+  // storyboard background: the same Sea idle field that follows ignition on the login
+  const sbIdle = fieldIdle($('#sb-field'), { k: 1 });
+  sbIdle.start(false);
+
+  /* ================= CONCEPTS ================= */
+  const C = [
+    { id: 'field', name: 'Dot field ignition', cat: 'Intro', dur: '1.75s', use: 'The first beat of videos and the login boot screen.',
+      css: 'Canvas dot grid. The unlit grid holds for 450ms, then a ring expands from the centre over 1.3s on a cubic ease-in-out, lighting its dots acid and leaving them at rest brightness.', ae: 'Grid of dots via Repeater; a radial mask with a keyed radius; a second brighter copy masked to a thin ring.',
+      desc: 'The dot grid powers on from the centre in a ring, then settles to its quiet level. The mark strobes on at the origin.',
+      init(s) { s.innerHTML = `<canvas class="fill"></canvas><div class="s-mk" style="position:absolute">${markSVG('58px')}</div>`; this.draw(s, 1); },
+      draw(s, p) { drawField($('canvas', s), p); },
+      async run(s, live) { ignite($('canvas', s), live); $('.fl', s).animate(TUBE, { duration: 700, delay: IGN_HOLD + 700, fill: 'backwards' }); } },
+    { id: 'construct', name: 'Construction build', cat: 'Intro', dur: '2.0s', use: 'Hero moments, the about page, long-form video openers.',
+      css: 'SVG lines with pathLength="1", stroke-dashoffset 1→0 on Trace, staggered 70ms. Fill uses the tube keyframes; lines settle to 25%.', ae: 'Shape layers on the 60° grid with Trim Paths; the fill on its own layer with hand-keyed stepped opacity.',
+      desc: 'The 60° construction lines plot across the frame, one stroke or one gap apart, and the mark fills in between them.',
+      init(s) { s.innerHTML = `<svg viewBox="-60 -60 720 640" style="width:76%;height:auto;overflow:visible" aria-hidden="true"><g class="cl"></g><g class="fl" fill="var(--mark)"><path d="${O}"/><path d="${I}"/></g></svg>`;
+        const r3 = Math.sqrt(3), H = 519.62, L = (y, d) => (H - y) / r3 + 2 * d / r3, R = (y, d) => 600 - (H - y) / r3 - 2 * d / r3, ls = [];
+        [0, 66, 99, 165].forEach(d => ls.push([L(-50, d), -50, L(H + 50, d), H + 50])); [0, 66, 99].forEach(d => ls.push([R(-50, d), -50, R(H + 50, d), H + 50])); [H, H - 66, H - 99].forEach(y => ls.push([-50, y, 650, y]));
+        $('.cl', s).innerHTML = ls.map(([a, b, c, d]) => `<line pathLength="1" stroke-dasharray="1" x1="${a}" y1="${b}" x2="${c}" y2="${d}" stroke="#ede6e1" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".25"/>`).join(''); },
+      async run(s) { $$('.cl line', s).forEach((l, i) => l.animate([{ strokeDashoffset: 1, opacity: .8 }, { strokeDashoffset: 0, opacity: .8, offset: .6 }, { strokeDashoffset: 0, opacity: .25 }], { duration: 1500, delay: i * 70, easing: TRACE, fill: 'backwards' })); $('.fl', s).animate(TUBE, { duration: 760, delay: 1100, fill: 'backwards' }); } },
+    { id: 'register', name: 'Registration align', cat: 'Intro', dur: '1.1s', use: 'Title cards, sticker loops, print-feel reveals.',
+      css: 'Each crosshair cuts in and out at two or three random spots (70–130ms on, 50–120ms off), then strobes into its final position and holds. Position never animates. The lockup enters once both are set.', ae: 'Hold keyframes only: position and opacity change on whole frames, never interpolated.',
+      desc: 'Two acid registration marks blink in and out at a few random spots, hunting, then flicker into register at the lockup\'s corners and stay there.',
+      init(s) { s._fin = [['calc(50% - 128px)', 'calc(50% - 36px)'], ['calc(50% + 110px)', 'calc(50% + 18px)']]; s.innerHTML = `<span class="reg r1" style="left:${s._fin[0][0]};top:${s._fin[0][1]}"></span><span class="reg r2" style="left:${s._fin[1][0]};top:${s._fin[1][1]}"></span><span class="lk" style="font-size:30px">${lockHTML()}</span>`; },
+      async run(s, live) {
+        const regs = $$('.reg', s), lk = $('.lk', s);
+        lk.style.visibility = 'hidden'; regs.forEach(r => r.style.opacity = 0);
+        const hunt = async (r, i) => {
+          await wait(i * 110);
+          for (let n = 2 + Math.floor(Math.random() * 2), k = 0; k < n; k++) { if (!live()) break; r.style.left = R2(6, 90) + '%'; r.style.top = R2(8, 82) + '%'; r.style.opacity = 1; await wait(R2(70, 130)); r.style.opacity = 0; await wait(R2(50, 120)); }
+          r.style.left = s._fin[i][0]; r.style.top = s._fin[i][1]; r.style.opacity = ''; if (live()) { strobe(r); await wait(T_STROBE); }
+        };
+        await Promise.all(regs.map(hunt));
+        lk.style.visibility = ''; if (live()) enter(lk);
+      } },
+    { id: 'bwipe', name: 'Bracket wipe', cat: 'Transition', dur: '0.6s', use: 'Page and scene changes. The signature transition.',
+      css: 'Bracket lines move from centre to the edges on Settle; the incoming view is clipped inset(0 50%) → inset(0) in sync.', ae: 'Track matte the incoming comp with a rectangle whose width follows the brackets.',
+      desc: 'The wordmark\'s brackets open from the centre to the edges and carry the next view in between them.',
+      init(s) { s.innerHTML = `<div class="panel-x a"><span class="label">/astra/labs/grid</span><span class="big">12 / 14</span><span class="label">services up</span></div><div class="panel-x b" style="clip-path:inset(0 50% 0 50%)"><span class="label">/astra/labs/vault</span><span class="big">2</span><span class="label">active sessions</span></div><span class="bracket-v l" style="left:calc(50% - 12px);opacity:0"></span><span class="bracket-v r" style="left:50%;opacity:0"></span>`; s._f = false; },
+      async run(s) { const a = $('.a', s), b = $('.b', s); if (s._f) [a.innerHTML, b.innerHTML] = [b.innerHTML, a.innerHTML]; s._f = !s._f; const o = { duration: 600, easing: SETTLE, fill: 'forwards' };
+        strobe($('.l', s)); strobe($('.r', s));
+        $('.l', s).animate([{ left: 'calc(50% - 12px)', opacity: 1 }, { left: '3%', opacity: 1, offset: .8 }, { left: '3%', opacity: 0 }], o); $('.r', s).animate([{ left: '50%', opacity: 1 }, { left: 'calc(97% - 12px)', opacity: 1, offset: .8 }, { left: 'calc(97% - 12px)', opacity: 0 }], o);
+        await b.animate([{ clipPath: 'inset(0 50% 0 50%)' }, { clipPath: 'inset(0 0% 0 0%)' }], o).finished.catch(() => {}); } },
+    { id: 'swipe', name: 'Slash wipe', cat: 'Transition', dur: '0.5s', use: 'Fast cuts in video; switching views on wide dashboards.',
+      css: 'Incoming view clipped by a 60° polygon moving left to right on Trace, with a thin acid band riding the edge.', ae: 'Linear Wipe at 30°, feather 0, with a 6px acid solid offset two frames ahead.',
+      desc: 'A thin 60° acid edge slices across the frame at the mark\'s angle, with the new view behind it.',
+      init(s) { s.innerHTML = `<div class="panel-x a"><span class="label">node-01</span><span class="big">0.42</span><span class="label">load avg</span></div><div class="panel-x b" style="clip-path:polygon(0 0,0% 0,-40% 100%,0 100%)"><span class="label">node-02</span><span class="big">0.91</span><span class="label">load avg</span></div><div class="band" style="position:absolute;inset:0;background:var(--acid);clip-path:polygon(0% 0,0% 0,-40% 100%,-40% 100%)"></div>`; s._f = false; },
+      async run(s) { const a = $('.a', s), b = $('.b', s); if (s._f) [a.innerHTML, b.innerHTML] = [b.innerHTML, a.innerHTML]; s._f = !s._f; const o = { duration: 520, easing: TRACE, fill: 'forwards' };
+        $('.band', s).animate([{ clipPath: 'polygon(0% 0,0% 0,-40% 100%,-40% 100%)' }, { clipPath: 'polygon(140% 0,142% 0,102% 100%,100% 100%)' }], o);
+        b.animate([{ clipPath: 'polygon(0 0,0% 0,-40% 100%,0 100%)' }, { clipPath: 'polygon(0 0,140% 0,100% 100%,0 100%)' }], o); } },
+    { id: 'mwipe', name: 'Mask wipe', cat: 'Transition', dur: '0.56s + 60ms each', use: 'The default entrance for panels, rows, toasts and text.',
+      css: 'clip-path inset(0 100% 0 0) → inset(0) over 560ms on Settle; siblings 60ms apart. No strobe.', ae: 'Rectangle mask with Settle-shaped speed graph; Venetian-free; stagger layers 1 frame apart.',
+      desc: 'The everyday entrance: each row wipes in from the left while it strobes on, a beat after the one above.',
+      init(s) { s.innerHTML = `<div class="mw-list">${[['caddy', '2ms'], ['gitea', '18ms'], ['jellyfin', '42ms'], ['immich', '310ms']].map(([a, b]) => `<div><span>${a}</span><b>${b}</b></div>`).join('')}</div>`; },
+      async run(s) { $$('.mw-list div', s).forEach((r, i) => enter(r, i * STAGGER)); } },
+    { id: 'crawl', name: 'Hazard crawl', cat: 'Loading', dur: 'Loop + 40ms', use: 'Deploys and migrations: anything with real risk while it runs.',
+      css: 'Hazard stripes with background-position looping, masked by progress. On completion the stripes stop and hold.', ae: 'Stripes via Repeater with keyed offset; progress as a mask.',
+      desc: 'Hazard stripes march along the band while a risky job runs, then freeze when it lands.',
+      init(s) { s.innerHTML = `<div style="display:grid;gap:10px;width:80%;justify-items:start"><span class="label">migrate pool-a → pool-b</span><div class="hz-band" style="width:100%"><div class="stripes"></div><div class="mask" style="width:0%"></div></div><span class="label st">Done · 2.72 TB</span></div>`; },
+      async run(s, live) { const st = $('.stripes', s), mask = $('.mask', s), lab = $('.st', s); const loop = st.animate([{ backgroundPosition: '0 0' }, { backgroundPosition: '16.17px 0' }], { duration: 420, iterations: Infinity });
+        for (let p = 0; p <= 100; p += 2) { if (!live()) { loop.cancel(); return; } mask.style.width = (100 - p) + '%'; lab.textContent = `Copying · ${(p * .0272).toFixed(2)} TB`; await wait(36); }
+        loop.cancel(); lab.textContent = 'Done · 2.72 TB'; strobe(lab); } },
+    { id: 'scan', name: 'Barcode scan', cat: 'Loading', dur: '1.0s', use: 'Verifying: a backup checksum, a device joining, a login.',
+      css: 'A 1px acid line translates across the barcode on Trace; each serial character resolves as the line passes it.', ae: 'Line keyed across; text animator range driven by the line\'s X position.',
+      desc: 'A scan line reads the barcode and the serial resolves behind it.',
+      init(s) { s.innerHTML = `<div style="display:grid;justify-items:center"><div class="barcode">${bars(77, 46)}<span class="scan"></span></div><div class="serial">AL-0451-NODE02</div></div>`; },
+      async run(s, live) { const sc = $('.scan', s), bc = $('.barcode', s), ser = $('.serial', s), txt = 'AL-0451-NODE02', w = bc.clientWidth, D = 1000, f = (P.trace.bez && bez(P.trace.bez));
+        sc.animate([{ left: '0px', opacity: 1 }, { left: w + 'px', opacity: 1, offset: .96 }, { left: w + 'px', opacity: 0 }], { duration: D, easing: TRACE });
+        const t0 = performance.now(); while (performance.now() - t0 < D) { if (!live()) return; const p = f((performance.now() - t0) / D); ser.textContent = [...txt].map((c, i) => i / txt.length < p ? c : rnd(GL)).join(''); await wait(30); } ser.textContent = txt; } },
+    { id: 'path', name: 'Path traversal', cat: 'Loading', dur: '~1.4s', use: 'Navigating deep into a service; breadcrumb loading.',
+      css: 'Segments append one at a time; the trailing slash spins on Flick while each resolves.', ae: 'Source Text keyed per segment; the spinner slash as its own layer with hold keys.',
+      desc: 'The breadcrumb types itself segment by segment, the slash spinning while each one resolves.',
+      init(s) { s.innerHTML = `<span class="path">[<span class="a">/</span>astra<span class="a">/</span>labs<span class="a">/</span>node-02<span class="a">/</span>immich]</span>`; },
+      async run(s, live) { const el = $('.path', s); let html = '[';
+        for (const sg of ['astra', 'labs', 'node-02', 'immich']) { el.innerHTML = html + '<span class="a spn">/</span>]'; const spn = $('.spn', el); for (let k = 0; k < 5; k++) { if (!live()) return; spn.textContent = SPIN[k % 4]; await wait(70); } html += `<span class="a">/</span>${sg}`; el.innerHTML = html + ']'; await wait(60); } } },
+    { id: 'gauge', name: 'Arc gauge', cat: 'Data', dur: '0.9s', use: 'Single values on dashboards: CPU, memory, storage.',
+      css: 'One ring, one 2px arc. stroke-dasharray animates on Trace while the number counts with an ease-out-quart.', ae: 'Ellipse with Trim Paths End keyed on Trace; Numbers effect driven by the same slider.',
+      desc: 'One ring, one arc, four quarter markers. The arc plots to its value and the number counts with it.',
+      init(s) { const r = 46, C = 2 * Math.PI * r; let m = ''; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 - Math.PI / 2; m += `<line class="mk4" x1="${Math.cos(a) * 51}" y1="${Math.sin(a) * 51}" x2="${Math.cos(a) * 56}" y2="${Math.sin(a) * 56}"/>`; }
+        s.innerHTML = `<svg class="gauge" viewBox="-62 -62 124 124" aria-hidden="true"><circle class="trk" r="${r}"/><circle class="arc" r="${r}" transform="rotate(-90)" stroke-dasharray="${C * .72} ${C}"/>${m}<text x="0" y="5" text-anchor="middle"><tspan class="n">72</tspan><tspan class="u" dx="2">%</tspan></text><text class="sub" x="0" y="20" text-anchor="middle">CPU · NODE-02</text></svg>`; s._C = C; },
+      async run(s) { const C = s._C, v = .3 + Math.random() * .6, arc = $('.arc', s), n = $('.n', s), from = +n.textContent / 100;
+        arc.animate([{ strokeDasharray: `${C * from} ${C}` }, { strokeDasharray: `${C * v} ${C}` }], { duration: 900, easing: TRACE, fill: 'forwards' }); arc.setAttribute('stroke-dasharray', `${C * v} ${C}`);
+        const t0 = performance.now(), f = bez(P.trace.bez); const step = () => { const p = Math.min(1, (performance.now() - t0) / 900); n.textContent = Math.round((from + (v - from) * f(p)) * 100); if (p < 1) requestAnimationFrame(step); }; step(); } },
+    { id: 'ruler', name: 'Ruler scrub', cat: 'Data', dur: '0.2s per move', use: 'Sliders, timelines, thresholds; any value on a scale.',
+      css: 'A 1px needle on a tick ruler moves with Snap; its label counts during the move.', ae: 'Needle Position with an overshoot graph; Numbers effect linked to X.',
+      desc: 'A needle on a measured scale snaps to each new reading, overshooting a hair, with the value counting beside it.',
+      init(s) { s.innerHTML = `<div class="ruler2"><span class="needle" style="left:62%"><span>6.2 GB</span></span><div class="scale"></div><div class="nums"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span></div></div>`; },
+      async run(s, live) { const nd = $('.needle', s), lb = $('span', nd); let cur = parseFloat(nd.style.left);
+        for (const v of [24, 81, 47, 66]) { if (!live()) return; const from = cur; nd.animate([{ left: from + '%' }, { left: v + '%' }], { duration: 240, easing: SNAP, fill: 'forwards' }); const t0 = performance.now(); const step = () => { const p = Math.min(1, (performance.now() - t0) / 240); lb.textContent = ((from + (v - from) * p) / 10).toFixed(1) + ' GB'; if (p < 1) requestAnimationFrame(step); }; step(); cur = v; await wait(560); nd.style.left = v + '%'; nd.getAnimations().forEach(a => a.cancel()); } } },
+    { id: 'flap', name: 'Split-flap readout', cat: 'Data', dur: '0.8s', use: 'Big live numbers: bandwidth, storage, uptime.',
+      css: 'Each digit cycles 0–9 every 40ms (Flick) and lands left to right, 110ms apart. Tabular figures keep the width still.', ae: 'Numbers effect per digit, Value keyed with hold interpolation, offset by layer index.',
+      desc: 'Digits roll and land one by one like a departure board. A changed value feels mechanical, not faded.',
+      init(s) { s.innerHTML = `<div style="display:grid;justify-items:center;gap:8px"><span class="label">egress / wg0</span><div class="flap">${[...'412.6'].map(c => `<span>${c}</span>`).join('')}<span class="u">Mb/s</span></div></div>`; },
+      async run(s, live) { const nv = (300 + Math.random() * 600).toFixed(1).padStart(5, '0'), f = $('.flap', s); f.innerHTML = [...nv].map(c => `<span>${c}</span>`).join('') + '<span class="u">Mb/s</span>'; const sp = $$('span:not(.u)', f), t0 = performance.now();
+        while (true) { if (!live()) return; const el = performance.now() - t0; let done = true; sp.forEach((x, i) => { if (nv[i] === '.') return; if (el < 280 + i * 110) { x.textContent = Math.floor(Math.random() * 10); done = false; } else x.textContent = nv[i]; }); if (done) break; await wait(40); } } },
+    { id: 'packet', name: 'Packet trace', cat: 'Data', dur: '1.0s + loop', use: 'Network maps and explainer videos about the homelab.',
+      css: 'Edges plot on with stroke-dashoffset (Trace), nodes strobe on, then 6px acid squares travel the edges.', ae: 'Trim Paths for edges; small squares with Position copied from the path.',
+      desc: 'The homelab as a line diagram. Links plot between nodes, then traffic runs along them as acid packets.',
+      init(s) { const N = { r: [300, 160], a: [120, 80], b: [120, 240], c: [480, 80], d: [480, 240] }, E = [['r', 'a'], ['r', 'b'], ['r', 'c'], ['r', 'd'], ['a', 'b']]; s._N = N; s._E = E;
+        s.innerHTML = `<svg class="net" viewBox="0 0 600 320" style="width:96%;height:auto" aria-hidden="true">${E.map(([p, q]) => `<line class="edge" pathLength="1" x1="${N[p][0]}" y1="${N[p][1]}" x2="${N[q][0]}" y2="${N[q][1]}"/>`).join('')}${Object.entries(N).map(([k, [x, y]]) => `<rect class="node" x="${x - 28}" y="${y - 14}" width="56" height="28"/><text x="${x}" y="${y + 3}" text-anchor="middle">${{ r: 'router', a: 'node-01', b: 'node-02', c: 'pi-03', d: 'wg0' }[k]}</text>`).join('')}<g class="pks"></g></svg>`; },
+      async run(s, live) { $$('.edge', s).forEach((e, i) => e.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 700, delay: i * 80, easing: TRACE, fill: 'backwards' })); $$('.node', s).forEach((n, i) => strobe(n, 250 + i * 50));
+        await wait(950); const g = $('.pks', s), N = s._N, E = s._E, pk = [], t0 = performance.now();
+        for (let i = 0; i < 7; i++) { const e = rnd(E), r = document.createElementNS(NS, 'rect'); r.setAttribute('class', 'pk'); r.setAttribute('width', 6); r.setAttribute('height', 6); g.appendChild(r); pk.push({ r, e: Math.random() > .5 ? e : [e[1], e[0]], o: Math.random() }); }
+        const tick = () => { if (!live() || performance.now() - t0 > 3200) { g.innerHTML = ''; return; } const t = (performance.now() - t0) / 900; pk.forEach(p => { const u = (t + p.o) % 1, [a, b] = [N[p.e[0]], N[p.e[1]]]; p.r.setAttribute('x', a[0] + (b[0] - a[0]) * u - 3); p.r.setAttribute('y', a[1] + (b[1] - a[1]) * u - 3); }); requestAnimationFrame(tick); }; tick(); } },
+    { id: 'beat', name: 'Heartbeat', cat: 'Data', dur: 'Loop', use: 'Uptime monitors and status pages; each pulse is one real check.',
+      css: 'Canvas hairline scrolling left over a dot grid; each check draws a sharp spike; a missed check leaves a gap and a status-down tick.', ae: 'Shape path with a Repeater scrolled by Offset.',
+      desc: 'A hairline with one sharp pulse per health check, over a fine dot grid. A missed check leaves a gap and a red tick.',
+      init(s) { s.innerHTML = `<div class="dots s-dots" style="background-size:12px 12px;opacity:.7"></div><canvas class="fill"></canvas><span class="label" style="position:absolute;left:10px;top:8px">uptime-kuma · gitea</span><span class="label" style="position:absolute;right:10px;bottom:8px;color:var(--acid)">99.94%</span>`; this.draw(s, 0); },
+      draw(s, t) { const c = $('canvas', s), r = c.getBoundingClientRect(), dpr = devicePixelRatio || 1; c.width = r.width * dpr; c.height = r.height * dpr; const x = c.getContext('2d'); x.scale(dpr, dpr); const W = r.width, H = r.height, mid = H * .58, sp = 46, off = (t * 70) % sp, base = Math.floor((t * 70) / sp);
+        x.strokeStyle = '#ede6e1'; x.lineWidth = 1; x.beginPath();
+        for (let i = -1; i < W / sp + 1; i++) { const bx = i * sp - off + 10, miss = (base + i) % 13 === 7; x.moveTo(bx, mid); if (miss) { x.moveTo(bx + sp, mid); continue; } x.lineTo(bx + 16, mid); x.lineTo(bx + 21, mid - 28); x.lineTo(bx + 27, mid + 10); x.lineTo(bx + 30, mid); x.lineTo(bx + sp, mid); }
+        x.stroke(); for (let i = -1; i < W / sp + 1; i++) { const bx = i * sp - off + 10; if ((base + i) % 13 === 7) { x.fillStyle = '#ff2e3a'; x.fillRect(bx + 20, mid - 4, 2, 8); } } },
+      async run(s, live) { const t0 = performance.now(), me = this; const f = () => { if (!live() || performance.now() - t0 > 6000) return; me.draw(s, (performance.now() - t0) / 1000); requestAnimationFrame(f); }; f(); } },
+    { id: 'leader', name: 'Leader draw', cat: 'Markers', dur: '0.7s', use: 'Annotating diagrams, product shots and network maps.',
+      css: 'A point strobes on; the leader line plots on Trace from the point to an elbow; the label wipes in on Settle at the end.', ae: 'Trim Paths on a two-segment path; label with a Settle-graph mask.',
+      desc: 'Callouts that draw themselves: a point lights, a leader runs out to an elbow, and the label wipes in where it lands.',
+      init(s) { s.innerHTML = `<div class="leader" style="position:absolute;inset:0"><div class="dots fade" style="position:absolute;inset:0"></div><svg viewBox="0 0 400 250" preserveAspectRatio="none" aria-hidden="true"><path class="ld l1" pathLength="1" stroke-dasharray="1" d="M120 160 L170 90 H260"/><path class="ld l2" pathLength="1" stroke-dasharray="1" d="M220 190 L250 160 H330"/><rect class="pt p1" x="117" y="157" width="6" height="6"/><rect class="pt p2" x="217" y="187" width="6" height="6"/></svg><span class="lbl b1" style="left:66%;top:24%"><small>port</small>8443 / TLS</span><span class="lbl b2" style="left:84%;top:52%"><small>gpu</small>A2000</span></div>`; },
+      async run(s) { [['.p1', '.l1', '.b1', 0], ['.p2', '.l2', '.b2', 260]].forEach(([p, l, b, d]) => { strobe($(p, s), d); $(l, s).animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 520, delay: d + 120, easing: TRACE, fill: 'backwards' }); enter($(b, s), d + 560); }); } },
+    { id: 'corners', name: 'Corner lock', cat: 'Markers', dur: '0.45s', use: 'Panels and cards arriving; a selected item gaining focus.',
+      css: 'Four corner ticks start 16px out and snap onto the panel corners on Snap; the panel fill wipes in behind them.', ae: 'Four L shapes with Position overshoot; panel mask on Settle, two frames later.',
+      desc: 'Four corner marks converge and lock onto a panel\'s corners, then its content wipes in.',
+      init(s) { s.innerHTML = `<div class="corner-panel"><span class="c c1"></span><span class="c c2"></span><span class="c c3"></span><span class="c c4"></span><span class="label">pool-a</span><span class="v">2.72 TB</span></div>`; },
+      async run(s) { const d = { c1: [-16, -16], c2: [16, -16], c3: [-16, 16], c4: [16, 16] }; Object.entries(d).forEach(([k, [x, y]]) => { const c = $('.' + k, s); c.animate([{ transform: `translate(${x}px,${y}px)`, opacity: 0 }, { opacity: 1, offset: .2 }, { transform: 'none', opacity: 1 }], { duration: 320, easing: SNAP, fill: 'backwards' }); });
+        const p = $('.corner-panel', s); p.animate([{ backgroundColor: 'transparent' }, { backgroundColor: 'transparent', offset: .5 }, { backgroundColor: '#131212' }], { duration: 500 }); $$('.corner-panel > :not(.c)', s).forEach((e, i) => enter(e, 260 + i * 35)); } },
+    { id: 'lockon', name: 'Lock-on', cat: 'Markers', dur: '0.24s per hop', use: 'Keyboard focus, guided tours, highlighting a node in a video.',
+      css: 'One corner-bracket frame moves between targets on Snap; the readout strobes on arrival.', ae: 'Null with overshoot position keys; brackets parented to it.',
+      desc: 'Focus brackets hop between targets and lock onto each one. The readout names what is locked.',
+      init(s) { s.innerHTML = `<div class="dots fade" style="position:absolute;inset:0"></div><span class="target" style="left:12%;top:22%">node-01</span><span class="target" style="left:66%;top:18%">pi-03</span><span class="target" style="left:42%;top:58%">node-02</span><span class="frame"><i></i><i></i><i></i><i></i></span><span class="lockread">LOCK · node-02</span>`; const t = $$('.target', s)[2], f = $('.frame', s); f.style.left = `calc(${t.style.left} - 8px)`; f.style.top = `calc(${t.style.top} - 8px)`; },
+      async run(s, live) { const ts = $$('.target', s), f = $('.frame', s), rd = $('.lockread', s);
+        for (const i of [0, 1, 2, 0, 2]) { if (!live()) return; const t = ts[i], from = { left: f.style.left, top: f.style.top }, to = { left: `calc(${t.style.left} - 8px)`, top: `calc(${t.style.top} - 8px)` };
+          f.animate([from, to], { duration: 240, easing: SNAP, fill: 'forwards' }); await wait(240); f.style.left = to.left; f.style.top = to.top; f.getAnimations().forEach(a => a.cancel()); rd.textContent = 'LOCK · ' + t.textContent; strobe(rd); await wait(420); } } },
+    { id: 'idle', name: 'Idle glitch', cat: 'Idle', dur: '≤280ms · every 8–20s', use: 'The resting mark on a wall dashboard, project page or stream overlay.',
+      css: 'Canvas: 7–13 stepped frames that rise and fall in strength, mixing a subtle RGB channel split, row shift, block tear, jitter and dropout. See Glitch anatomy above.', ae: 'Precomp per layer: Channel offset (Shift Channels + Transform), Displacement Map with a stepped noise for rows, masks for blocks. Hold keys only.',
+      desc: 'The resting mark breaks up for a few frames, with chromatic fringes, sliding rows and torn blocks, then snaps back clean. Replay shows three bursts; in use it fires once every 8–20 seconds.',
+      init(s) { s.innerHTML = `<canvas class="fill" aria-hidden="true"></canvas>`; },
+      async run(s, live) { for (let i = 0; i < 3; i++) { if (!live()) return; if (s._g) await s._g.burst({ ca: true, lines: true, blocks: true, jitter: true, dropout: true }, .6, live); await wait(700); } } },
+    { id: 'survey', name: 'Survey sweep', cat: 'Idle', dur: '1.4s', use: 'Refreshing a panel of values; a calm alternative to a spinner.',
+      css: 'A bone hairline moves top to bottom on Trace; each row strobes and decodes as the line crosses it.', ae: 'Line keyed down; each row\'s reveal driven by the line\'s Y.',
+      desc: 'A survey line passes down the panel and each reading resolves as it crosses.',
+      init(s) { s.innerHTML = `<div class="survey"><span class="line"></span>${[['load', '0.42 0.38 0.31'], ['mem', '18.2 / 64G'], ['zfs', 'pool-a ONLINE'], ['temp', '51 °C'], ['fans', '1180 rpm']].map(([k, v]) => `<div class="r"><span>${k}</span><i></i><b data-v="${v}">${v}</b></div>`).join('')}</div>`; },
+      async run(s, live) { const rows = $$('.r', s), ln = $('.line', s), h = $('.survey', s).clientHeight, f = bez(P.trace.bez);
+        ln.animate([{ top: '0px', opacity: 1 }, { top: h + 'px', opacity: 1, offset: .95 }, { top: h + 'px', opacity: 0 }], { duration: 1400, easing: TRACE });
+        rows.forEach(r => r.style.opacity = .3);
+        rows.forEach((r, i) => { const y = (i + .5) / rows.length; let lo = 0, hi = 1; for (let k = 0; k < 20; k++) { const m = (lo + hi) / 2; f(m) < y ? lo = m : hi = m; } setTimeout(() => { if (!live()) return; r.style.opacity = 1; strobe(r); const b = $('b', r); decodeText(b, b.dataset.v, live, .6); }, lo * 1400); }); } },
+    { id: 'power', name: 'Power down', cat: 'Outro', dur: '1.2s', use: 'End of videos, signing out, a service shutting down.',
+      css: 'The mark strobes out; letters delete right to left (38ms each); brackets close; one acid square blinks twice and goes dark.', ae: 'Backwards typewriter on Source Text; bracket Position keys; square with stepped opacity.',
+      desc: 'The boot in reverse. The path deletes, the brackets close, and a single acid square blinks twice before going dark.',
+      init(s) { s.innerHTML = `<span class="lk" style="font-size:32px">${lockHTML()}</span><span class="pdot" style="position:absolute;width:6px;height:6px;background:var(--acid);opacity:0"></span>`; },
+      async run(s, live) { s.innerHTML = ''; this.init(s); const lk = $('.lk', s), inner = $('.in', lk), mk = $('.mk', lk), dot = $('.pdot', s), txt = 'ASTRA/LABS';
+        mk.animate(hard([{ opacity: 1 }, { opacity: 0, offset: .2 }, { opacity: 1, offset: .4 }, { opacity: .3, offset: .6 }, { opacity: 0, offset: .8 }, { opacity: 0 }]), { duration: 300, fill: 'forwards' }); await wait(300);
+        for (let n = txt.length; n >= 0; n--) { if (!live()) return; inner.innerHTML = txt.slice(0, n).replace('/', '<i class="sl">/</i>'); await wait(38); }
+        lk.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 80, delay: 120, easing: 'steps(1,end)', fill: 'forwards' }); await wait(220);
+        await dot.animate(hard([{ opacity: 1 }, { opacity: 0, offset: .25 }, { opacity: 1, offset: .5 }, { opacity: 0, offset: .75 }, { opacity: 0 }]), { duration: 640 }).finished.catch(() => {});
+        await wait(500); if (!live()) return; s.innerHTML = ''; this.init(s); enter($('.lk', s)); } },
+    { id: 'stamp', name: 'Decal stamp', cat: 'Outro', dur: '0.4s', use: 'Sticker loops, merch posts, the sign-off at the end of a video.',
+      css: 'The asset tag scales 1.12 → 1 on Snap, perfectly level, with the hazard foot wiping in after contact.', ae: 'Scale with a small overshoot graph; a 2-frame acid fill on impact; no rotation.',
+      desc: 'The asset tag presses onto the frame, square and level, and the hazard stripe runs out along its foot.',
+      init(s) { s.innerHTML = `<div class="tag"><div class="bar"><span>Property of</span><span>AL-0451</span></div><div class="body">${lockHTML()}</div><div class="foot"></div></div>`; },
+      async run(s) { const t = $('.tag', s); t.animate([{ transform: 'scale(1.12)', opacity: 0 }, { opacity: 1, offset: .3 }, { transform: 'scale(1)', opacity: 1 }], { duration: 280, easing: SNAP, fill: 'backwards' }); strobe($('.bar', t), 240); wipe($('.foot', t), 280); } },
+  ];
+
+  const cats = ['All', ...new Set(C.map(c => c.cat))];
+  $('#cats').innerHTML = cats.map(c => `<button class="chip" type="button" data-c="${c}" aria-pressed="${c === 'All'}">${c}<span>${c === 'All' ? C.length : C.filter(x => x.cat === c).length}</span></button>`).join('');
+  $('#sheet').innerHTML = C.map(c => `<article class="card" data-cat="${c.cat}" id="c-${c.id}"><div class="head"><h3>${c.name}</h3><span class="cat">${c.cat}</span></div><div class="stage ticks" data-s="${c.id}"></div><p>${c.desc}</p><dl class="spec"><div><dt>Length</dt><dd>${c.dur}</dd></div><div><dt>Use</dt><dd>${c.use}</dd></div><div><dt>CSS</dt><dd>${c.css}</dd></div><div><dt>AE</dt><dd>${c.ae}</dd></div></dl><button class="btn" type="button" data-run="${c.id}" ${reduce ? 'disabled' : ''}>Replay</button></article>`).join('');
+  const tokens = {};
+  C.forEach(c => { c.init.call(c, $(`[data-s="${c.id}"]`)); tokens[c.id] = 0; });
+  function runC(c) { if (reduce) return; const s = $(`[data-s="${c.id}"]`); s.getAnimations({ subtree: true }).forEach(a => a.cancel()); const t = ++tokens[c.id]; c.run.call(c, s, () => tokens[c.id] === t); }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-run]'); if (b) runC(C.find(c => c.id === b.dataset.run)); });
+  $('#cats').addEventListener('click', e => { const b = e.target.closest('.chip'); if (!b) return; $$('#cats .chip').forEach(x => x.setAttribute('aria-pressed', String(x === b))); $$('.card').forEach(k => { k.hidden = b.dataset.c !== 'All' && k.dataset.cat !== b.dataset.c; if (!k.hidden) enter(k); }); });
+  const onScreen = el => { const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; };
+  if (!reduce && 'IntersectionObserver' in window) {
+    const seen = new Set();
+    const io = new IntersectionObserver(es => es.forEach(e => { if (!e.isIntersecting) return; const el = e.target; io.unobserve(el); if (el.classList.contains('prof')) runProfile(el); else { const id = el.id.slice(2); if (!seen.has(id)) { seen.add(id); runC(C.find(c => c.id === id)); } } }), { threshold: .6 });
+    $$('.card, .prof').forEach(k => { if (!onScreen(k)) io.observe(k); });
+  }
+  addEventListener('resize', () => { ['beat', 'field'].forEach(id => { const c = C.find(x => x.id === id); c.draw($(`[data-s="${id}"]`), id === 'field' ? 1 : 0); }); });
+})();
+</script>

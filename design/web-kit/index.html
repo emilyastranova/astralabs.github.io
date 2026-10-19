@@ -1,0 +1,1721 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a0909">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Interface components for AstraLabs services: login and SSO, terminal, app shell, forms, tables, live logs and graphs.">
+<link rel="canonical" href="https://astralabs.dev/design/web-kit/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AstraLabs">
+<meta property="og:url" content="https://astralabs.dev/design/web-kit/">
+<meta property="og:title" content="AstraLabs Web Kit">
+<meta property="og:description" content="Interface components for AstraLabs services: login and SSO, terminal, app shell, forms, tables, live logs and graphs.">
+<meta property="og:image" content="https://astralabs.dev/images/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://astralabs.dev/images/og.png">
+<link rel="icon" type="image/svg+xml" href="/favicon/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+<title>AstraLabs Web Kit</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,300..900&family=Martian+Mono:wdth,wght@75..112.5,100..800&display=swap">
+<style>
+/* Layout: a component kit as hairline-ruled sheets under a sticky lockup bar. Square by default; the 60° cut is reserved for the filled primary action and the destructive dialog. Line markers (end ticks, leaders, thresholds, rulers) and masked dot grids carry the detail. Dark-only by design. */
+:root {
+  color-scheme: dark;
+  --void: #0a0909; --plate: #131212; --rule: #2c2a29; --rule-subtle: #1c1b1a;
+  --mark: #ffffff; --bone: #ede6e1; --ash: #8e8380;
+  --acid: #b6ff2e; --acid-hi: #ccff6b; --on-acid: #0a0909;
+  --ok: #4dff88; --warn: #ffa21f; --down: #ff2e3a;
+  --dot: color-mix(in oklab, var(--bone) 22%, transparent);
+  --font-display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --font-mono: "Martian Mono", ui-monospace, Menlo, monospace;
+  --cut: 9px;
+  /* motion: four speeds */
+  --t-flick: 40ms;   --e-flick: steps(1, end);
+  --t-snap: 200ms;   --e-snap: cubic-bezier(.3, 1.35, .5, 1);
+  --t-trace: 900ms;  --e-trace: cubic-bezier(.7, 0, .2, 1);
+  --t-settle: 360ms; --e-settle: cubic-bezier(.16, 1, .3, 1);
+  --gutter: clamp(16px, 4vw, 48px);
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: 72px; }
+html { scrollbar-color: var(--rule) var(--void); }
+body { background: var(--void); color: var(--bone); font-family: var(--font-display); font-size: 15px; line-height: 1.55; }
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 65ch; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--bone); text-decoration-color: var(--acid); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--acid); outline-offset: 3px; }
+.label { font-family: var(--font-mono); font-size: 10.5px; line-height: 1.3; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; font-variation-settings: "wdth" 85; color: var(--ash); }
+.label b { color: var(--acid); font-weight: 500; }
+.mono { font-family: var(--font-mono); font-variation-settings: "wdth" 85; font-variant-numeric: tabular-nums; }
+.dim { color: var(--ash); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- detail utilities ---------- */
+/* corner ticks: four 8px L-marks instead of a full frame */
+.ticks { --tk: var(--bone); --tl: 8px; background:
+  linear-gradient(var(--tk), var(--tk)) top left / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) top left / 1px var(--tl) no-repeat,
+  linear-gradient(var(--tk), var(--tk)) top right / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) top right / 1px var(--tl) no-repeat,
+  linear-gradient(var(--tk), var(--tk)) bottom left / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) bottom left / 1px var(--tl) no-repeat,
+  linear-gradient(var(--tk), var(--tk)) bottom right / var(--tl) 1px no-repeat, linear-gradient(var(--tk), var(--tk)) bottom right / 1px var(--tl) no-repeat; }
+/* dot grid, faded out toward the edges */
+.dots { background-image: radial-gradient(circle at center, var(--dot) 0 1px, transparent 1.4px); background-size: 16px 16px; background-position: 8px 8px; }
+.dots.fade { -webkit-mask-image: radial-gradient(ellipse 70% 65% at 50% 50%, #000 35%, transparent 100%); mask-image: radial-gradient(ellipse 70% 65% at 50% 50%, #000 35%, transparent 100%); }
+/* measurement rule with end ticks and an acid index segment */
+.mrule { position: relative; height: 9px; border-bottom: 1px solid var(--rule); }
+.mrule::before, .mrule::after { content: ""; position: absolute; bottom: -1px; width: 1px; height: 9px; background: var(--ash); }
+.mrule::before { left: 0; } .mrule::after { right: 0; }
+.mrule i { position: absolute; left: 0; bottom: -1px; width: 32px; height: 2px; background: var(--acid); }
+/* ruler: minor every 8px, major every 40px */
+.ruler { height: 10px; background:
+  repeating-linear-gradient(90deg, var(--ash) 0 1px, transparent 1px 8px) left bottom / 100% 4px no-repeat,
+  repeating-linear-gradient(90deg, var(--bone) 0 1px, transparent 1px 40px) left bottom / 100% 9px no-repeat; opacity: .6; }
+/* dotted leader rows */
+.leaders { display: grid; gap: 0; font: 400 12px/1.4 var(--font-mono); font-variation-settings: "wdth" 85; }
+.leaders div { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; }
+.leaders dt { margin: 0; color: var(--ash); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; }
+.leaders i { flex: 1; min-width: 16px; border-bottom: 1px dotted color-mix(in oklab, var(--ash) 60%, transparent); transform: translateY(-3px); }
+.leaders dd { margin: 0; color: var(--bone); text-align: right; overflow-wrap: anywhere; }
+
+/* ---------- brand atoms ---------- */
+.mk { display: block; color: var(--mark); flex: none; overflow: visible; }
+.mk .ol path { fill: none; stroke: var(--bone); stroke-width: 1.5; vector-effect: non-scaling-stroke; stroke-dasharray: 1; opacity: 0; }
+.mk .fl path { fill: currentColor; }
+.wm { display: inline-flex; align-items: baseline; font-family: var(--font-mono); font-weight: 300; font-variation-settings: "wdth" 112.5; text-transform: uppercase; line-height: 1; color: var(--mark); white-space: nowrap; }
+.wm .in { letter-spacing: .36em; }
+.wm .br, .wm .sl { color: var(--acid); }
+.wm .br { display: inline-block; transition: transform var(--t-snap) var(--e-snap); }
+.wm .lb { margin-right: .5em; } .wm .rb { margin-left: .14em; }
+.wm .sl { display: inline-block; min-width: .62em; text-align: center; font-style: normal; }
+.wm .cur { display: inline-block; width: .6em; height: 1em; background: var(--acid); vertical-align: -.12em; margin-right: .36em; }
+.lock { display: inline-flex; align-items: center; gap: .42em; line-height: 1; }
+.lock .mk { height: 1.05em; width: auto; }
+.lock .wm { font-size: .56em; }
+.lock:hover .lb { transform: translateX(-.45em); } .lock:hover .rb { transform: translateX(.45em); }
+
+/* ---------- top bar ---------- */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; background: color-mix(in oklab, var(--void) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+.topbar-in { max-width: 1280px; margin: 0 auto; padding-inline: var(--gutter); padding-block: 12px; display: flex; align-items: center; gap: 12px 28px; flex-wrap: wrap; }
+.topbar .lock { font-size: 26px; text-decoration: none; }
+.jump { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-left: auto; }
+.jump a { font: 500 10px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); text-decoration: none; padding: 6px 0; font-variation-settings: "wdth" 85; position: relative; }
+.jump a:hover { color: var(--bone); }
+.jump a.on { color: var(--bone); }
+.jump a.on::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--acid); }
+.kbd { font: 500 10px/1 var(--font-mono); border: 1px solid var(--rule); padding: 3px 5px; color: var(--ash); }
+
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: var(--gutter); padding-block: 40px 120px; display: grid; gap: 88px; }
+.intro { display: grid; gap: 16px; }
+.intro h1 { font: 900 clamp(38px, 6vw, 72px)/.9 var(--font-display); font-variation-settings: "wdth" 118; text-transform: uppercase; letter-spacing: -.01em; color: var(--mark); }
+.intro p { color: var(--ash); font-size: 16px; }
+.intro strong { color: var(--bone); font-weight: 600; }
+.sec-head { display: grid; gap: 10px; margin-bottom: 22px; }
+.sec-head .t { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 24px; }
+.sec-head h2 { font: 800 22px/1.15 var(--font-display); font-variation-settings: "wdth" 110; text-transform: uppercase; letter-spacing: .02em; }
+.sheet { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); border-top: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.cell { grid-column: span 4; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 18px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.cell.s3 { grid-column: span 3; } .cell.s5 { grid-column: span 5; } .cell.s6 { grid-column: span 6; } .cell.s7 { grid-column: span 7; } .cell.s8 { grid-column: span 8; } .cell.s12 { grid-column: span 12; }
+.cell > * { min-width: 0; }
+.cell > .label:first-child { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.stack { display: grid; gap: 12px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+/* ---------- buttons (square; only the filled primary is cut) ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 600 11px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; font-variation-settings: "wdth" 85; padding: 12px 16px; border: 1px solid var(--rule); cursor: pointer; background: transparent; color: var(--bone); transition: background-color var(--t-flick) var(--e-flick), color var(--t-flick) var(--e-flick), border-color var(--t-flick) var(--e-flick); white-space: nowrap; text-decoration: none; position: relative; }
+.btn:active { transform: translateY(1px); }
+.btn-primary { background: var(--acid); border-color: var(--acid); color: var(--on-acid); clip-path: polygon(0 0, calc(100% - var(--cut)) 0, 100% calc(var(--cut) * 1.732), 100% 100%, 0 100%); padding-right: 22px; }
+.btn-primary:hover { background: var(--acid-hi); border-color: var(--acid-hi); }
+.btn-ghost { border-color: var(--acid); }
+.btn-ghost:hover { background: var(--acid); color: var(--on-acid); }
+.btn-quiet { color: var(--ash); }
+.btn-quiet:hover { border-color: var(--bone); color: var(--bone); }
+.btn-danger { border-color: var(--down); color: var(--down); }
+.btn-danger:hover { background: var(--down); color: var(--void); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+.btn-sm { padding: 8px 11px; font-size: 10px; }
+.btn-primary.btn-sm { --cut: 7px; padding-right: 15px; }
+.btn-lg { padding: 16px 22px; font-size: 12px; }
+.btn-primary.btn-lg { --cut: 12px; padding-right: 30px; }
+.btn .spin { display: inline-block; width: .8em; text-align: center; }
+.btn.is-busy { pointer-events: none; }
+.seg { display: inline-flex; border: 1px solid var(--rule); position: relative; }
+.seg button { border: 0; background: transparent; padding: 9px 13px; font: 500 10px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); cursor: pointer; font-variation-settings: "wdth" 85; position: relative; z-index: 1; transition: color var(--t-flick) var(--e-flick); }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { color: var(--on-acid); }
+.seg .slider { position: absolute; top: 0; bottom: 0; left: 0; background: var(--acid); transition: transform var(--t-snap) var(--e-snap), width var(--t-snap) var(--e-snap); }
+
+/* ---------- forms ---------- */
+.field { display: grid; gap: 6px; min-width: 0; }
+.field .hint { font: 400 11px/1.4 var(--font-mono); color: var(--ash); font-variation-settings: "wdth" 85; }
+.field .err { font: 400 11px/1.4 var(--font-mono); color: var(--down); font-variation-settings: "wdth" 85; display: flex; gap: 6px; }
+.field .err::before { content: "■"; }
+.input { width: 100%; height: 40px; background: var(--void); border: 1px solid var(--rule); padding: 0 12px; font: 400 12.5px/1 var(--font-mono); font-variation-settings: "wdth" 90; color: var(--bone); transition: border-color var(--t-settle) var(--e-settle), box-shadow var(--t-settle) var(--e-settle); }
+.input::placeholder { color: color-mix(in oklab, var(--ash) 70%, var(--void)); }
+.input:hover { border-color: color-mix(in oklab, var(--rule), var(--bone) 25%); }
+.input:focus { outline: none; border-color: var(--acid); box-shadow: inset 0 -2px 0 var(--acid); }
+.input[aria-invalid="true"] { border-color: var(--down); box-shadow: inset 0 -2px 0 var(--down); }
+.input:disabled { opacity: .45; }
+textarea.input { height: 96px; padding: 10px 12px; line-height: 1.5; resize: vertical; }
+.affix { display: flex; }
+.affix > span { display: grid; place-items: center; padding: 0 10px; border: 1px solid var(--rule); border-right: 0; font: 400 12px var(--font-mono); color: var(--ash); background: var(--plate); white-space: nowrap; }
+.affix .input { min-width: 0; }
+.pw { position: relative; }
+.pw .input { padding-right: 64px; }
+.pw button { position: absolute; right: 6px; top: 6px; height: 28px; border: 0; background: transparent; font: 500 9.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); cursor: pointer; }
+.pw button:hover { color: var(--acid); }
+.select { position: relative; }
+.select select { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 34px; }
+.select::after { content: ""; position: absolute; right: 13px; top: 16px; width: 7px; height: 7px; border-right: 1px solid var(--acid); border-bottom: 1px solid var(--acid); transform: rotate(45deg); pointer-events: none; }
+.check { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+.check input { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; border: 1px solid var(--ash); background: var(--void); margin: 0; display: grid; place-items: center; cursor: pointer; flex: none; transition: border-color var(--t-flick) var(--e-flick); }
+.check input::after { content: ""; width: 8px; height: 8px; background: var(--acid); transform: scale(0); transition: transform var(--t-snap) var(--e-snap); }
+.check input:checked { border-color: var(--acid); }
+.check input:checked::after { transform: scale(1); }
+.check input[type="radio"], .check input[type="radio"]::after { border-radius: 50%; }
+.switch { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; font-size: 14px; }
+.switch input { appearance: none; -webkit-appearance: none; width: 40px; height: 20px; border: 1px solid var(--ash); background: var(--void); position: relative; margin: 0; cursor: pointer; flex: none; transition: border-color var(--t-flick) var(--e-flick); }
+.switch input::after { content: ""; position: absolute; left: 3px; top: 3px; width: 12px; height: 12px; background: var(--ash); transition: transform var(--t-snap) var(--e-snap), background-color var(--t-flick) var(--e-flick); }
+.switch input:checked { border-color: var(--acid); }
+.switch input:checked::after { transform: translateX(20px); background: var(--acid); }
+.switch small { font: 500 9.5px var(--font-mono); letter-spacing: .12em; color: var(--ash); text-transform: uppercase; min-width: 3ch; }
+.range { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 4px 12px; align-items: center; }
+.range input { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; background: transparent; margin: 0; }
+.range input::-webkit-slider-runnable-track { height: 1px; background: linear-gradient(to right, var(--acid) var(--p, 50%), var(--rule) var(--p, 50%)); }
+.range input::-moz-range-track { height: 1px; background: var(--rule); }
+.range input::-moz-range-progress { height: 1px; background: var(--acid); }
+.range input::-webkit-slider-thumb { -webkit-appearance: none; width: 2px; height: 16px; margin-top: -8px; background: var(--acid); border: 0; box-shadow: 0 0 0 3px var(--void); }
+.range input::-moz-range-thumb { width: 2px; height: 16px; background: var(--acid); border: 0; border-radius: 0; }
+.range output { font: 300 18px/1 var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.range .ruler { grid-column: 1; }
+.range .scale { grid-column: 1; display: flex; justify-content: space-between; font: 400 9px var(--font-mono); color: var(--ash); letter-spacing: .06em; }
+.drop { border: 1px dashed var(--ash); padding: 22px 16px; display: grid; gap: 6px; justify-items: center; text-align: center; cursor: pointer; transition: border-color var(--t-settle) var(--e-settle), background-color var(--t-settle) var(--e-settle); }
+.drop.is-over { border-color: var(--acid); border-style: solid; }
+.drop strong { font-size: 14px; }
+.files { display: grid; gap: 4px; font: 400 11px var(--font-mono); color: var(--bone); }
+
+/* ---------- panels / data ---------- */
+.panel { position: relative; background-color: var(--plate); border: 1px solid var(--rule-subtle); padding: 14px; display: grid; gap: 8px; min-width: 0; }
+.panel.ticks { --tk: color-mix(in oklab, var(--bone) 55%, transparent); background-color: var(--plate); }
+.panel.is-active { --tk: var(--acid); border-color: var(--rule); }
+.stat .v { font: 300 26px/1 var(--font-mono); color: var(--bone); font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 12px; color: var(--ash); }
+.stat .delta { font: 400 10.5px var(--font-mono); color: var(--ash); }
+.spark-box { position: relative; height: 38px; }
+.spark-box .dots { position: absolute; inset: 0; background-size: 8px 8px; opacity: .6; }
+.spark { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.spark .line { fill: none; stroke: var(--bone); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.spark .end { fill: var(--acid); }
+.spark .hair { stroke: var(--acid); stroke-width: 1; stroke-dasharray: 2 2; vector-effect: non-scaling-stroke; }
+.pill { display: inline-flex; align-items: center; gap: 7px; font: 500 10px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; font-variation-settings: "wdth" 85; white-space: nowrap; }
+.pill::before { content: ""; width: 8px; height: 8px; flex: none; }
+.pill.ok { color: var(--ok); } .pill.ok::before { background: var(--ok); }
+.pill.warn { color: var(--warn); } .pill.warn::before { background: repeating-linear-gradient(120deg, var(--warn) 0 2px, transparent 2px 4px); outline: 1px solid var(--warn); }
+.pill.down { color: var(--down); } .pill.down::before { background: var(--down); animation: blink 1.2s steps(1, end) infinite; }
+.pill.sync { color: var(--bone); } .pill.sync::before { border: 1px solid var(--bone); border-radius: 50%; }
+.tag { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--rule); padding: 4px 7px; font: 500 10px/1 var(--font-mono); letter-spacing: .08em; color: var(--bone); text-transform: lowercase; }
+.tag.acid { border-color: var(--acid); color: var(--acid); }
+.tag button { border: 0; background: none; padding: 0; color: var(--ash); cursor: pointer; font: inherit; }
+.tag button:hover { color: var(--down); }
+.badge { display: inline-flex; font: 600 9.5px/1 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.badge span { padding: 5px 7px; background: var(--rule); color: var(--bone); }
+.badge span + span { background: var(--acid); color: var(--on-acid); }
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--rule); }
+table.tbl { width: 100%; border-collapse: collapse; font: 400 12px/1.4 var(--font-mono); font-variation-settings: "wdth" 85; font-variant-numeric: tabular-nums; min-width: 680px; }
+.tbl th { text-align: left; font-weight: 500; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ash); padding: 0; border-bottom: 1px solid var(--rule); background: var(--plate); }
+.tbl th button { all: unset; display: flex; gap: 6px; padding: 10px 14px; cursor: pointer; width: 100%; box-sizing: border-box; }
+.tbl th button:focus-visible { outline: 2px solid var(--acid); outline-offset: -2px; }
+.tbl th button:hover { color: var(--bone); }
+.tbl th[aria-sort] { color: var(--bone); box-shadow: inset 0 -1px 0 var(--acid); }
+.tbl th[aria-sort] button::after { content: "↑"; color: var(--acid); }
+.tbl th[aria-sort="descending"] button::after { content: "↓"; }
+.tbl td { padding: 11px 14px; border-bottom: 1px solid var(--rule-subtle); white-space: nowrap; }
+.tbl td.idx { color: color-mix(in oklab, var(--ash) 70%, var(--void)); width: 1%; padding-right: 0; }
+.tbl tbody tr { transition: background-color var(--t-flick) var(--e-flick); }
+.tbl tbody tr:hover td { background: color-mix(in oklab, var(--plate), var(--bone) 3%); }
+.tbl td.num { color: var(--bone); text-align: right; } .tbl th.num button { justify-content: flex-end; }
+.tbl tr.is-selected td { background: color-mix(in oklab, var(--acid) 6%, var(--void)); }
+.tbl tr.is-selected td.idx { color: var(--acid); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); background: transparent; padding: 6px 9px; font: 500 10px/1 var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ash); cursor: pointer; font-variation-settings: "wdth" 85; }
+.chip[aria-pressed="true"] { border-color: var(--acid); color: var(--bone); }
+.chip span { color: var(--acid); margin-left: 4px; }
+/* meter: hairline track, fill, threshold marker, scale */
+.meter { display: grid; gap: 6px; }
+.meter .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.meter .track { position: relative; height: 12px; }
+.meter .track::before { content: ""; position: absolute; left: 0; right: 0; top: 5px; height: 1px; background: var(--rule); }
+.meter .fill { position: absolute; left: 0; top: 4px; height: 3px; background: var(--acid); width: var(--v); transform-origin: left; }
+.meter.warn .fill { background: var(--warn); }
+.meter .thr { position: absolute; top: -1px; left: var(--thr); width: 1px; height: 13px; background: var(--bone); }
+.meter .thr::after { content: ""; position: absolute; top: -4px; left: -3px; border: 3.5px solid transparent; border-top-color: var(--bone); }
+.meter .scale { display: flex; justify-content: space-between; font: 400 9px var(--font-mono); color: var(--ash); letter-spacing: .04em; }
+.meter .ruler { height: 6px; background: repeating-linear-gradient(90deg, var(--rule) 0 1px, transparent 1px 25%) left bottom / calc(100% + 1px) 6px no-repeat; opacity: 1; }
+/* gauge: one ring, one arc, four markers */
+.gauge { display: grid; justify-items: center; gap: 6px; }
+.gauge svg { width: 112px; height: 112px; overflow: visible; }
+.gauge .trk { fill: none; stroke: var(--rule); stroke-width: 2; }
+.gauge .arc { fill: none; stroke: var(--acid); stroke-width: 2; stroke-linecap: butt; }
+.gauge .mk4 { stroke: var(--ash); stroke-width: 1; }
+.gauge text { fill: var(--bone); font: 300 20px var(--font-mono); font-variant-numeric: tabular-nums; }
+.gauge text small, .gauge .u { fill: var(--ash); font-size: 9px; }
+.code { position: relative; border: 1px solid var(--rule); background: var(--void); min-width: 0; overflow: hidden; }
+.code pre { margin: 0; padding: 14px 14px 14px 0; overflow-x: auto; font: 400 12px/1.7 var(--font-mono); font-variation-settings: "wdth" 85; color: var(--bone); counter-reset: ln; }
+.code pre span.l { display: block; padding-left: 46px; position: relative; }
+.code pre span.l::before { counter-increment: ln; content: counter(ln, decimal-leading-zero); position: absolute; left: 0; width: 32px; text-align: right; color: color-mix(in oklab, var(--ash) 60%, var(--void)); border-right: 1px solid var(--rule-subtle); padding-right: 8px; }
+.code .k { color: var(--acid); } .code .c { color: var(--ash); }
+.code-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 6px 6px 14px; border-bottom: 1px solid var(--rule); }
+.log { height: 220px; overflow-y: auto; border: 1px solid var(--rule); background: var(--void); padding: 10px 0; font: 400 11px/1.75 var(--font-mono); font-variation-settings: "wdth" 85; }
+.log div { white-space: pre-wrap; overflow-wrap: anywhere; display: grid; grid-template-columns: 88px 46px minmax(0, 1fr); padding-right: 12px; }
+.log .t { color: var(--ash); white-space: nowrap; padding-left: 12px; border-right: 1px solid var(--rule-subtle); margin-right: 10px; }
+.log .lv-info { color: var(--bone); } .log .lv-warn { color: var(--warn); } .log .lv-err { color: var(--down); } .log .svc { color: var(--acid); }
+.log div.new { animation: wipe var(--t-settle) var(--e-settle); }
+
+/* ---------- feedback ---------- */
+.alert { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 12px; align-items: start; border-top: 1px solid var(--rule); padding: 12px 0; }
+.alert::before { content: ""; width: 8px; height: 8px; margin-top: 6px; background: var(--bone); }
+.alert h4 { font-size: 14px; font-weight: 700; }
+.alert p { color: var(--ash); font-size: 13px; }
+.alert .meta { grid-column: 2; font: 400 10px var(--font-mono); color: var(--ash); letter-spacing: .08em; }
+.alert.ok::before { background: var(--ok); }
+.alert.warn::before { background: repeating-linear-gradient(120deg, var(--warn) 0 2px, transparent 2px 4px); outline: 1px solid var(--warn); }
+.alert.down::before { background: var(--down); animation: blink 1.2s steps(1, end) infinite; }
+.alert .x { border: 0; background: none; color: var(--ash); cursor: pointer; font: 400 14px var(--font-mono); padding: 0 2px; }
+.alert .x:hover { color: var(--bone); }
+.banner { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 14px; align-items: center; background: var(--plate); border: 1px solid var(--rule); }
+.banner .hz { align-self: stretch; background: repeating-linear-gradient(120deg, var(--acid) 0 6px, transparent 6px 12px); }
+.banner > div { padding: 12px 0; }
+.banner > .btn { margin-right: 12px; }
+.hazard { background: repeating-linear-gradient(120deg, var(--acid) 0 7px, transparent 7px 14px); }
+.toasts { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 60; display: grid; gap: 8px; width: min(360px, calc(100vw - 32px)); }
+.toast { background-color: var(--plate); border: 1px solid var(--rule); padding: 12px 14px 12px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; position: relative; }
+.toast.ticks { --tk: var(--bone); }
+.toast .bar { position: absolute; left: 0; top: 0; height: 1px; background: var(--acid); width: 100%; transform-origin: left; }
+.toast strong { font-size: 13.5px; }
+.toast .label { grid-column: 1; }
+.toast button { grid-row: 1 / span 2; grid-column: 2; align-self: center; border: 0; background: none; color: var(--ash); cursor: pointer; font: 500 9.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
+.tip { position: relative; display: inline-flex; }
+.tip [role="tooltip"] { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); background: var(--bone); color: var(--void); font: 500 10.5px/1.4 var(--font-mono); padding: 6px 9px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity var(--t-flick) var(--e-flick); font-variation-settings: "wdth" 85; }
+.tip [role="tooltip"]::after { content: ""; position: absolute; top: 100%; left: 50%; width: 1px; height: 8px; background: var(--bone); }
+.tip:hover [role="tooltip"], .tip:focus-within [role="tooltip"] { opacity: 1; }
+.empty { position: relative; padding: 30px 18px; display: grid; gap: 10px; justify-items: center; text-align: center; overflow: hidden; }
+.empty .dots { position: absolute; inset: 0; z-index: 0; }
+.empty > :not(.dots) { position: relative; }
+.empty .glyph { font: 300 22px var(--font-mono); color: var(--acid); letter-spacing: .2em; }
+.empty p { color: var(--ash); font-size: 13px; max-width: 36ch; }
+.skel { display: grid; gap: 8px; }
+.skel i { display: block; height: 8px; background: radial-gradient(circle, var(--dot) 0 1px, transparent 1.4px) 0 0 / 6px 6px; position: relative; overflow: hidden; }
+.skel i::after { content: ""; position: absolute; top: 0; bottom: 0; width: 30%; background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--bone) 18%, transparent), transparent); animation: skel 1.2s var(--e-trace) infinite; }
+@keyframes skel { from { left: -30%; } to { left: 100%; } }
+.decoding { font: 300 15px var(--font-mono); letter-spacing: .1em; color: var(--bone); }
+
+/* modal: the one outlined cut, drawn as two layers so the corner is closed */
+.scrim { position: fixed; inset: 0; z-index: 70; background: color-mix(in oklab, var(--void) 82%, transparent); display: grid; place-items: center; padding: 16px; }
+.modal { --c: 22px; width: min(460px, 100%); background: var(--down); padding: 1px; clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% calc(var(--c) * 1.732), 100% 100%, 0 100%); }
+/* inner layer = outer cut offset 1px along its normal, so the outline stays 1px across the diagonal */
+.modal > .in { background: var(--plate); clip-path: polygon(0 0, calc(100% - var(--c) + .42px) 0, 100% calc(var(--c) * 1.732 - 1.23px), 100% 100%, 0 100%); display: grid; }
+.modal .hazard { height: 12px; background: repeating-linear-gradient(120deg, var(--down) 0 7px, transparent 7px 14px); }
+.modal .body { padding: 20px; display: grid; gap: 14px; }
+.modal h3 { font: 800 20px/1.15 var(--font-display); font-variation-settings: "wdth" 108; }
+.modal p { color: var(--ash); font-size: 14px; }
+.modal code { font-family: var(--font-mono); color: var(--bone); background: var(--void); padding: 1px 5px; border: 1px solid var(--rule); }
+.modal .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* ---------- navigation ---------- */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--rule); overflow-x: auto; position: relative; }
+.tabs button { border: 0; background: none; padding: 12px 16px; font: 500 10.5px/1 var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ash); cursor: pointer; white-space: nowrap; font-variation-settings: "wdth" 85; transition: color var(--t-flick) var(--e-flick); }
+.tabs button[aria-selected="true"] { color: var(--bone); }
+.tabs .ind { position: absolute; bottom: -1px; height: 2px; background: var(--acid); left: 0; transition: transform var(--t-snap) var(--e-snap), width var(--t-snap) var(--e-snap); }
+.tabpanel { padding: 16px 0 0; color: var(--ash); font-size: 14px; }
+.crumbs { display: flex; flex-wrap: wrap; gap: 6px; font: 400 11px var(--font-mono); color: var(--ash); font-variation-settings: "wdth" 85; }
+.crumbs a { color: var(--ash); text-decoration: none; } .crumbs a:hover { color: var(--bone); }
+.crumbs .sep { color: var(--acid); }
+.crumbs [aria-current] { color: var(--bone); }
+.pager { display: flex; gap: 4px; flex-wrap: wrap; }
+.pager button { min-width: 34px; height: 34px; border: 1px solid var(--rule); background: transparent; font: 500 11px var(--font-mono); color: var(--ash); cursor: pointer; font-variant-numeric: tabular-nums; }
+.pager button:hover { color: var(--bone); border-color: var(--bone); }
+.pager button[aria-current="page"] { border-color: var(--acid); color: var(--acid); }
+.steps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; }
+.step { display: grid; gap: 8px; padding-right: 10px; min-width: 0; }
+.step .ln { height: 9px; position: relative; border-bottom: 1px solid var(--rule); }
+.step .ln::before { content: ""; position: absolute; left: 0; bottom: -1px; width: 1px; height: 9px; background: var(--ash); }
+.step .ln::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--acid); transform: scaleX(0); transform-origin: left; transition: transform var(--t-trace) var(--e-trace); }
+.step.done .ln::after { transform: scaleX(1); }
+.step.done .ln::before, .step.run .ln::before { background: var(--acid); }
+.step.run .ln::after { animation: run 1s var(--e-trace) infinite; }
+@keyframes run { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
+.step .n { font: 500 10px var(--font-mono); color: var(--ash); letter-spacing: .12em; }
+.step.done .n, .step.run .n { color: var(--acid); }
+.step h4 { font-size: 13px; font-weight: 700; }
+.step .st { font: 400 10.5px var(--font-mono); color: var(--ash); }
+.cmdk { width: min(560px, 100%); background-color: var(--plate); border: 1px solid var(--rule); }
+.cmdk.ticks { --tk: var(--bone); }
+.cmdk .q { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+.cmdk .q .wm { font-size: 11px; }
+.cmdk .q input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: 400 13px var(--font-mono); color: var(--bone); }
+.cmdk ul { list-style: none; margin: 0; padding: 6px; max-height: 260px; overflow-y: auto; }
+.cmdk li { display: flex; align-items: baseline; gap: 8px; padding: 9px 10px; font: 400 12px var(--font-mono); cursor: pointer; color: var(--bone); font-variation-settings: "wdth" 85; }
+.cmdk li i { flex: 1; border-bottom: 1px dotted var(--rule); transform: translateY(-3px); }
+.cmdk li small { color: var(--ash); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.cmdk li[aria-selected="true"] { background: color-mix(in oklab, var(--acid) 10%, transparent); }
+.cmdk li[aria-selected="true"]::before { content: "›"; color: var(--acid); margin-left: -4px; }
+.cmdk .foot { display: flex; gap: 14px; padding: 8px 14px; border-top: 1px solid var(--rule); }
+
+/* ---------- app shell ---------- */
+.shell { border: 1px solid var(--rule); display: grid; grid-template-columns: 210px minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 520px; }
+.shell-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--rule); background: var(--void); }
+.shell-top .lock { font-size: 20px; }
+.shell-top .search { margin-left: auto; display: flex; align-items: center; gap: 10px; border: 1px solid var(--rule); padding: 7px 10px; font: 400 11px var(--font-mono); color: var(--ash); cursor: pointer; background: none; }
+.shell-top .search:hover { border-color: var(--bone); }
+.avatar { width: 30px; height: 30px; border: 1px solid var(--rule); display: grid; place-items: center; font: 600 11px var(--font-mono); color: var(--acid); }
+.side { border-right: 1px solid var(--rule); padding: 14px 0; display: grid; align-content: start; gap: 2px; background: var(--void); }
+.side .grp { padding: 14px 16px 6px; }
+.side a { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font: 400 12px var(--font-mono); color: var(--ash); text-decoration: none; font-variation-settings: "wdth" 85; position: relative; }
+.side a:hover { color: var(--bone); }
+.side a[aria-current="page"] { color: var(--bone); }
+.side a[aria-current="page"]::before { content: ""; position: absolute; left: 0; top: 50%; width: 10px; height: 1px; background: var(--acid); }
+.side a .n { font-size: 10px; color: var(--ash); }
+.shell-main { padding: 20px; display: grid; gap: 18px; align-content: start; min-width: 0; position: relative; }
+.page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 14px; }
+.page-head h3 { font: 800 30px/1 var(--font-display); font-variation-settings: "wdth" 108; color: var(--mark); margin-top: 6px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+
+/* ---------- login ---------- */
+.login-wrap { border: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); min-height: 560px; }
+.login-art { position: relative; overflow: hidden; border-right: 1px solid var(--rule); display: grid; place-items: center; padding: 48px 24px; }
+.login-art canvas.field { position: absolute; inset: 0; width: 100%; height: 100%; }
+.login-art .boot { position: relative; display: grid; justify-items: center; gap: 22px; }
+.login-art .boot .mk { height: clamp(90px, 11vw, 132px); width: auto; }
+.login-art .boot .wm { font-size: clamp(15px, 1.6vw, 20px); }
+.reg { position: absolute; width: 18px; height: 18px; }
+.reg::before, .reg::after { content: ""; position: absolute; background: var(--acid); }
+.reg::before { left: 50%; top: 0; width: 1px; height: 100%; } .reg::after { top: 50%; left: 0; height: 1px; width: 100%; }
+.corner { position: absolute; font: 400 9.5px var(--font-mono); letter-spacing: .12em; color: var(--ash); text-transform: uppercase; }
+.login-form { display: grid; align-content: center; padding: 40px clamp(20px, 4vw, 56px); gap: 22px; background: var(--void); }
+.login-form h3 { font: 800 28px/1.05 var(--font-display); font-variation-settings: "wdth" 108; color: var(--mark); }
+.login-form .host { font: 400 11.5px var(--font-mono); color: var(--ash); }
+.login-form .host b { color: var(--acid); font-weight: 400; }
+.login-form form { display: grid; gap: 16px; }
+.login-form .btn-primary { width: 100%; }
+.or { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+.or::before, .or::after { content: ""; height: 1px; background: var(--rule); }
+.login-form .fine { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.lp { display: grid; gap: 22px; }
+.sso-status { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--rule); background: var(--plate); font: 400 12px var(--font-mono); font-variation-settings: "wdth" 85; color: var(--bone); }
+.sso-wm { font: 300 14px var(--font-mono); color: var(--acid); letter-spacing: .2em; font-variation-settings: "wdth" 112.5; }
+.sso-wm i { font-style: normal; display: inline-block; width: .7em; text-align: center; }
+.sso-status.is-ok #sso-msg { color: var(--acid); }
+#lp-sso .row { flex-wrap: nowrap; }
+#lp-sso .btn-primary { width: auto; flex: 1; }
+.granted { display: grid; gap: 14px; justify-items: start; }
+.granted .big { font: 300 13px var(--font-mono); letter-spacing: .3em; color: var(--acid); text-transform: uppercase; }
+
+/* ---------- terminal ---------- */
+.term { border: 1px solid var(--rule); background: var(--void); }
+.term-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--rule); }
+.term-bar .dots3 { display: flex; gap: 6px; }
+.term-bar .dots3 i { width: 8px; height: 8px; border: 1px solid var(--ash); }
+.term-bar .dots3 i:first-child { background: var(--acid); border-color: var(--acid); }
+.term-body { height: 380px; overflow-y: auto; padding: 14px 16px; font: 400 12px/1.7 var(--font-mono); font-variation-settings: "wdth" 85; cursor: text; }
+.term-body .ln { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 1.7em; }
+.term-body .k { color: var(--acid); } .term-body .d { color: var(--ash); } .term-body .ok { color: var(--ok); } .term-body .w { color: var(--warn); } .term-body .e { color: var(--down); }
+.term-body .lock { font-size: 30px; margin: 10px 0 14px; }
+.term-in { display: flex; gap: 0; align-items: baseline; }
+.term-in input { flex: 1; min-width: 0; border: 0; background: none; outline: none; font: inherit; color: var(--bone); caret-color: var(--acid); padding: 0; }
+
+/* ---------- pages ---------- */
+.page-mock { min-height: 320px; position: relative; display: grid; place-items: center; padding: 40px 20px; overflow: hidden; }
+.page-mock > .dots { position: absolute; inset: 0; }
+.page-mock .inner { position: relative; display: grid; justify-items: center; gap: 16px; text-align: center; }
+.page-mock .code404 { font: 300 clamp(26px, 4vw, 44px)/1 var(--font-mono); letter-spacing: .3em; color: var(--mark); font-variation-settings: "wdth" 112.5; }
+.page-mock .code404 .br, .page-mock .code404 .sl { color: var(--acid); }
+.page-mock p { color: var(--ash); font-size: 14px; }
+.page-mock .hz-top { position: absolute; left: 0; right: 0; top: 0; height: 12px; }
+.page-mock .eta { font: 300 34px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--bone); }
+
+/* ---------- footer ---------- */
+.site-foot { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)); gap: 24px; }
+.site-foot > .mrule { grid-column: 1 / -1; }
+.site-foot .lock { font-size: 24px; }
+.site-foot ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font: 400 12px var(--font-mono); font-variation-settings: "wdth" 85; }
+.site-foot ul a { color: var(--ash); text-decoration: none; } .site-foot ul a:hover { color: var(--bone); }
+.site-foot .fine { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; border-top: 1px solid var(--rule); padding-top: 14px; }
+
+/* ---------- charts ---------- */
+.chart { position: relative; min-width: 0; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart .gl { stroke: var(--rule-subtle); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .base { stroke: var(--rule); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .tick { font: 400 9px var(--font-mono); fill: var(--ash); letter-spacing: .04em; font-variant-numeric: tabular-nums; }
+.chart .endv { font: 400 11px var(--font-mono); fill: var(--bone); font-variant-numeric: tabular-nums; }
+.chart .endv tspan.u { fill: var(--ash); font-size: 9px; }
+.chart .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .thr { stroke: var(--bone); stroke-width: 1; stroke-dasharray: 3 3; opacity: .55; }
+.chart .thr-l { font: 400 9px var(--font-mono); fill: var(--ash); letter-spacing: .06em; }
+.chart .xh { stroke: var(--bone); stroke-width: 1; opacity: .5; shape-rendering: crispEdges; }
+.chart .evt { stroke: var(--warn); stroke-width: 1; shape-rendering: crispEdges; }
+.chart .hit { fill: transparent; cursor: crosshair; }
+.chart .mk-bar { cursor: default; }
+.chart .mk-bar:hover, .chart .mk-bar.on { filter: brightness(1.25); }
+.chart .dots-bg { position: absolute; inset: 0 0 22px 36px; background-image: radial-gradient(circle at center, color-mix(in oklab, var(--bone) 14%, transparent) 0 1px, transparent 1.4px); background-size: 12px 12px; pointer-events: none; }
+.tt { position: absolute; z-index: 5; pointer-events: none; background: var(--plate); border: 1px solid var(--rule); padding: 7px 9px; display: grid; gap: 3px; font: 400 11px/1.35 var(--font-mono); font-variation-settings: "wdth" 85; color: var(--bone); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tt .h { color: var(--ash); font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; }
+.tt .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.tt .r span:first-child { display: inline-flex; align-items: center; gap: 6px; color: var(--ash); }
+.tt i { display: inline-block; width: 10px; height: 2px; }
+.ch-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 14px; }
+.ch-head h3 { font-size: 15px; font-weight: 700; }
+.ch-head .acts { display: flex; gap: 6px; align-items: center; }
+.ch-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 10.5px var(--font-mono); color: var(--ash); font-variation-settings: "wdth" 85; }
+.ch-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.ch-legend i { width: 14px; height: 2px; display: inline-block; }
+.ch-legend i.sq { width: 8px; height: 8px; }
+.ch-legend i.st-ok { background: var(--ok); } .ch-legend i.st-warn { background: repeating-linear-gradient(120deg, var(--warn) 0 2px, transparent 2px 4px); outline: 1px solid var(--warn); } .ch-legend i.st-down { background: var(--down); }
+.ch-table { overflow-x: auto; max-height: 240px; overflow-y: auto; border: 1px solid var(--rule); }
+.ch-table table { width: 100%; border-collapse: collapse; font: 400 11.5px var(--font-mono); font-variation-settings: "wdth" 85; font-variant-numeric: tabular-nums; }
+.ch-table th { text-align: left; font-weight: 500; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ash); padding: 8px 10px; border-bottom: 1px solid var(--rule); background: var(--plate); position: sticky; top: 0; }
+.ch-table td { padding: 7px 10px; border-bottom: 1px solid var(--rule-subtle); }
+.ch-table td:not(:first-child), .ch-table th:not(:first-child) { text-align: right; }
+.ch-note { font: 400 10.5px var(--font-mono); color: var(--ash); font-variation-settings: "wdth" 85; }
+.ch-note b { color: var(--bone); font-weight: 400; }
+.ch-live { display: inline-flex; align-items: center; gap: 6px; font: 500 9.5px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); }
+.ch-live::before { content: ""; width: 6px; height: 6px; background: var(--acid); }
+.ch-live.paused::before { background: var(--ash); }
+.mini-btn { border: 1px solid var(--rule); background: transparent; padding: 5px 8px; font: 500 9.5px/1 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ash); cursor: pointer; font-variation-settings: "wdth" 85; }
+.mini-btn:hover, .mini-btn[aria-pressed="true"] { color: var(--bone); border-color: var(--bone); }
+
+@keyframes wipe { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes blink { 50% { opacity: .15; } }
+@keyframes pulse { from { opacity: 1; } to { opacity: .3; } }
+
+@media (max-width: 1080px) {
+  .cell, .cell.s3, .cell.s5 { grid-column: span 6; }
+  .cell.s7, .cell.s8 { grid-column: span 12; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 860px) {
+  .login-wrap { grid-template-columns: 1fr; }
+  .login-art { border-right: 0; border-bottom: 1px solid var(--rule); min-height: 320px; }
+  .shell { grid-template-columns: 1fr; }
+  .side { display: none; }
+  .site-foot { grid-template-columns: 1fr 1fr; }
+  .steps { grid-template-columns: repeat(5, minmax(90px, 1fr)); overflow-x: auto; }
+  .jump { display: none; }
+}
+@media (max-width: 640px) {
+  .sheet { grid-template-columns: 1fr; }
+  .cell, .cell.s3, .cell.s5, .cell.s6, .cell.s7, .cell.s8, .cell.s12 { grid-column: auto; }
+  .stats { grid-template-columns: 1fr; }
+  .shell-top .search span:first-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="mark" viewBox="0 0 600 519.62">
+      <path fill="currentColor" d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/>
+      <path fill="currentColor" d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="lock" href="#login" aria-label="AstraLabs"><svg class="mk" viewBox="0 0 600 519.62" aria-hidden="true"><use href="#mark"/></svg><span class="wm" aria-hidden="true"><span class="br lb">[</span><span class="in">ASTRA<i class="sl">/</i>LABS</span><span class="br rb">]</span></span></a>
+    <nav class="jump" aria-label="Sections" id="jump">
+      <a href="#login">Login</a><a href="#terminal">Terminal</a><a href="#shell">App shell</a><a href="#actions">Actions</a><a href="#forms">Forms</a><a href="#data">Data</a><a href="#graphs">Graphs</a><a href="#feedback">Feedback</a><a href="#nav">Navigation</a><a href="#pages">Pages</a>
+    </nav>
+    <button class="btn btn-quiet btn-sm" id="open-cmdk" type="button">Search <span class="kbd">Ctrl K</span></button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="intro">
+    <span class="label"><b>■</b> AstraLabs / Web kit / v0.2</span>
+    <h1>Web Kit</h1>
+    <p>The interface pieces for AstraLabs services and project pages, shown working with <strong>example homelab data</strong>. Everything responds: the login, the terminal, the table, the dialogs and the command palette. Press <strong>Ctrl K</strong> anywhere for the palette.</p>
+    <div class="mrule"><i></i></div>
+  </section>
+
+  <!-- ===================== LOGIN ===================== -->
+  <section id="login" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Login</h2><span class="label">Any 8+ character passphrase works</span></div><div class="mrule"><i></i></div></div>
+    <div class="login-wrap">
+      <div class="login-art" id="login-art">
+        <canvas class="field" id="lg-field" aria-hidden="true"></canvas>
+        <span class="reg" style="top:22px;left:22px"></span><span class="reg" style="top:22px;right:22px"></span>
+        <button class="btn btn-quiet btn-sm" type="button" id="lg-replay" style="position:absolute;top:16px;right:52px">Replay boot</button>
+        <div class="boot">
+          <svg class="mk" id="lg-mk" viewBox="0 0 600 519.62" aria-hidden="true"><g class="ol"><path pathLength="1" d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/><path pathLength="1" d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/></g><g class="fl"><path d="M0 519.62 L300 0 L542.84 420.62 L466.63 420.62 L300 132 L76.21 519.62 Z"/><path d="M114.32 519.62 L300 198 L338.11 264 L228.63 453.62 L561.89 453.62 L600 519.62 Z"/></g></svg>
+          <span class="wm" id="login-wm" aria-label="AstraLabs"><span class="br lb">[</span><span class="in">ASTRA<i class="sl">/</i>LABS</span><span class="br rb">]</span></span>
+        </div>
+      </div>
+      <div class="login-form" id="login-pane">
+        <div class="lp" id="lp-form">
+        <div class="stack" style="gap:8px">
+          <span class="label"><b>■</b> Restricted system</span>
+          <h3>Sign in</h3>
+          <span class="host">to <b>vault.astralabs.dev</b></span>
+        </div>
+        <form id="login-form" novalidate>
+          <div class="field">
+            <label class="label" for="lg-user">User</label>
+            <input class="input" id="lg-user" name="user" autocomplete="off" value="emily" spellcheck="false">
+          </div>
+          <div class="field">
+            <label class="label" for="lg-pass">Passphrase</label>
+            <div class="pw"><input class="input" id="lg-pass" type="password" autocomplete="off" placeholder="••••••••••••" aria-describedby="lg-err"><button type="button" id="lg-show" aria-controls="lg-pass" aria-pressed="false">Show</button></div>
+            <span class="err" id="lg-err" hidden></span>
+          </div>
+          <label class="check"><input type="checkbox" id="lg-remember" checked> Trust this device for 30 days</label>
+          <button class="btn btn-primary btn-lg" type="submit" id="lg-submit">Authenticate</button>
+          <div class="or"><span class="label">or</span></div>
+          <button class="btn btn-ghost" type="button" id="lg-sso">Continue with SSO · auth.astralabs.dev</button>
+        </form>
+        <div class="fine label"><span>Lost access? Use a recovery key</span><span>Build 8dc01b2</span></div>
+        </div>
+        <div class="lp" id="lp-sso" hidden>
+          <div class="stack" style="gap:8px">
+            <span class="label"><b>■</b> Single sign-on</span>
+            <h3>auth.astralabs.dev</h3>
+            <span class="host">Requested by <b>vault.astralabs.dev</b></span>
+          </div>
+          <div class="sso-status" aria-live="polite"><span class="sso-wm" aria-hidden="true">[<i id="sso-sl">/</i>]</span><span id="sso-msg">Waiting for your passkey</span></div>
+          <dl class="leaders">
+            <div><dt>Account</dt><i></i><dd id="sso-user">emily</dd></div>
+            <div><dt>Scopes</dt><i></i><dd>profile · groups</dd></div>
+            <div><dt>Device</dt><i></i><dd>this browser</dd></div>
+          </dl>
+          <div class="row"><button class="btn btn-primary" type="button" id="sso-go">Use passkey</button><button class="btn btn-quiet" type="button" id="sso-cancel">Cancel</button></div>
+          <div class="fine label"><span>OIDC · Authelia</span><span>Session 12h</span></div>
+        </div>
+        <div class="lp granted" id="lp-ok" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== TERMINAL ===================== -->
+  <section id="terminal" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Terminal</h2><span class="label">Type <b>help</b> · click to focus</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s8" style="padding:0">
+        <div class="term" id="term" style="border:0">
+          <div class="term-bar"><span class="dots3" aria-hidden="true"><i></i><i></i><i></i></span><span class="label">emily@node-02 · ssh</span><span class="label">80×24</span></div>
+          <div class="term-body" id="term-body" role="log" aria-live="polite">
+            <div id="term-out"></div>
+            <div class="term-in"><span class="k">emily@node-02</span><span class="d">:~$&nbsp;</span><label class="sr" for="term-input">Terminal command</label><input id="term-input" autocomplete="off" spellcheck="false"></div>
+          </div>
+        </div>
+      </div>
+      <div class="cell s4">
+        <span class="label"><span><b>■</b> Commands</span><span>8</span></span>
+        <dl class="leaders">
+          <div><dt>help</dt><i></i><dd>List commands</dd></div>
+          <div><dt>status</dt><i></i><dd>Service health</dd></div>
+          <div><dt>uptime</dt><i></i><dd>Node uptime, load</dd></div>
+          <div><dt>ping host</dt><i></i><dd>Reach a node</dd></div>
+          <div><dt>neofetch</dt><i></i><dd>System summary</dd></div>
+          <div><dt>deploy</dt><i></i><dd>Deploy with spinner</dd></div>
+          <div><dt>glitch</dt><i></i><dd>Signal check</dd></div>
+          <div><dt>clear</dt><i></i><dd>Clear the screen</dd></div>
+        </dl>
+        <p class="dim" style="font-size:13px">The banner is the real <span class="mono">/etc/motd</span> pattern: lockup, host line, then a few true stats. Arrow up recalls history.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== APP SHELL ===================== -->
+  <section id="shell" data-reveal>
+    <div class="sec-head"><div class="t"><h2>App shell</h2><span class="label">Header · sidebar · breadcrumbs · stats</span></div><div class="mrule"><i></i></div></div>
+    <div class="shell">
+      <div class="shell-top">
+        <span class="lock"><svg class="mk" viewBox="0 0 600 519.62" aria-hidden="true"><use href="#mark"/></svg><span class="wm" aria-hidden="true"><span class="br lb">[</span><span class="in">ASTRA<i class="sl">/</i>LABS</span><span class="br rb">]</span></span></span>
+        <span class="label">/ grid</span>
+        <button class="search" type="button" data-open-cmdk><span>Search services, hosts, actions</span><span class="kbd">Ctrl K</span></button>
+        <span class="avatar" aria-label="Signed in as emily">EA</span>
+      </div>
+      <nav class="side" aria-label="App">
+        <span class="label grp">Overview</span>
+        <a href="#shell" aria-current="page">Cluster <span class="n">2</span></a>
+        <a href="#shell">Services <span class="n">14</span></a>
+        <a href="#shell">Storage <span class="n">1</span></a>
+        <span class="label grp">Operate</span>
+        <a href="#shell">Deploys</a>
+        <a href="#shell">Backups</a>
+        <a href="#shell">Logs</a>
+        <span class="label grp">System</span>
+        <a href="#shell">Access</a>
+        <a href="#shell">Settings</a>
+      </nav>
+      <div class="shell-main">
+        <div class="page-head">
+          <div>
+            <nav class="crumbs" aria-label="Breadcrumb"><a href="#shell">astralabs</a><span class="sep">/</span><a href="#shell">grid</a><span class="sep">/</span><span aria-current="page">cluster</span></nav>
+            <h3>Cluster overview</h3>
+          </div>
+          <div class="row"><button class="btn btn-quiet btn-sm" type="button" data-toast="Exported|cluster-2026-10-16.json saved to /exports">Export</button><button class="btn btn-primary btn-sm" type="button" data-toast="Deploy queued|homelab-ops@8dc01b2 → node-01, node-02">Deploy</button></div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="banner"><span class="hz" aria-hidden="true"></span><div><strong style="font-size:14px">Maintenance window tonight</strong><p class="dim" style="font-size:13px">node-02 reboots for a kernel update at 02:00. Jellyfin and Immich will be offline for about 6 minutes.</p></div><button class="btn btn-ghost btn-sm" type="button" data-toast="Rescheduled|node-02 maintenance moved to Sat 02:00">Reschedule</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ACTIONS ===================== -->
+  <section id="actions" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Actions</h2><span class="label">Square by default · the cut marks the one primary action</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s6">
+        <span class="label"><span><b>■</b> Variants</span><span>One primary per view</span></span>
+        <div class="row">
+          <button class="btn btn-primary" type="button">Restart service</button>
+          <button class="btn btn-ghost" type="button">View logs</button>
+          <button class="btn btn-quiet" type="button">Cancel</button>
+          <button class="btn btn-danger" type="button" data-open-modal>Wipe pool</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-quiet btn-sm" type="button">Small</button>
+          <button class="btn btn-quiet" type="button">Default</button>
+          <button class="btn btn-quiet btn-lg" type="button">Large</button>
+          <button class="btn btn-ghost" type="button" disabled>Disabled</button>
+        </div>
+      </div>
+      <div class="cell s3">
+        <span class="label"><span><b>■</b> Busy</span></span>
+        <div class="stack" style="justify-items:start">
+          <button class="btn btn-ghost" type="button" id="busy-btn">Run backup</button>
+          <p class="dim" style="font-size:13px">The wordmark's slash becomes the spinner.</p>
+        </div>
+      </div>
+      <div class="cell s3">
+        <span class="label"><span><b>■</b> Segmented</span></span>
+        <div class="seg" role="group" aria-label="Time range" id="seg">
+          <span class="slider" aria-hidden="true"></span>
+          <button type="button" aria-pressed="false">1h</button><button type="button" aria-pressed="true">24h</button><button type="button" aria-pressed="false">7d</button><button type="button" aria-pressed="false">30d</button>
+        </div>
+        <span class="label">Range <b id="seg-out">24h</b></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FORMS ===================== -->
+  <section id="forms" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Forms</h2><span class="label">Inputs · choices · uploads</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell">
+        <span class="label"><span><b>■</b> Text</span></span>
+        <div class="field"><label class="label" for="f-name">Service name</label><input class="input" id="f-name" value="immich"><span class="hint">Lowercase, used in the hostname.</span></div>
+        <div class="field"><label class="label" for="f-host">Hostname</label><div class="affix"><span>https://</span><input class="input" id="f-host" value="photos.astralabs.dev"></div></div>
+        <div class="field"><label class="label" for="f-port">Port</label><input class="input" id="f-port" value="80800" aria-invalid="true" aria-describedby="f-port-err"><span class="err" id="f-port-err">Port must be between 1 and 65535.</span></div>
+        <div class="field"><label class="label" for="f-dis">Node ID</label><input class="input" id="f-dis" value="AL-0451-NODE02" disabled></div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Choices</span></span>
+        <div class="field"><label class="label" for="f-node">Target node</label><div class="select"><select class="input" id="f-node"><option>node-01 · 10.0.0.11</option><option selected>node-02 · 10.0.0.12</option><option>pi-03 · 10.0.0.23</option></select></div></div>
+        <fieldset class="stack" style="border:0;padding:0;margin:0;gap:10px">
+          <legend class="label" style="margin-bottom:8px">Restart policy</legend>
+          <label class="check"><input type="radio" name="rp" checked> unless-stopped</label>
+          <label class="check"><input type="radio" name="rp"> on-failure</label>
+          <label class="check"><input type="radio" name="rp"> never</label>
+        </fieldset>
+        <div class="stack" style="gap:10px">
+          <label class="check"><input type="checkbox" checked> Expose through reverse proxy</label>
+          <label class="check"><input type="checkbox"> Include in nightly backup</label>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Switches · ranges</span></span>
+        <label class="switch"><input type="checkbox" checked id="sw-1"> Auto-update images <small id="sw-1-s">On</small></label>
+        <label class="switch"><input type="checkbox" id="sw-2"> Maintenance mode <small id="sw-2-s">Off</small></label>
+        <div class="field"><label class="label" for="f-mem">Memory limit</label><div class="range"><input type="range" id="f-mem" min="512" max="16384" step="512" value="4096"><output for="f-mem" id="f-mem-o">4.0G</output><div class="ruler"></div><div class="scale"><span>0.5G</span><span>8G</span><span>16G</span></div></div></div>
+        <div class="field"><label class="label" for="f-cpu">CPU shares</label><div class="range"><input type="range" id="f-cpu" min="1" max="8" value="2"><output for="f-cpu" id="f-cpu-o">2</output><div class="ruler"></div><div class="scale"><span>1</span><span>4</span><span>8</span></div></div></div>
+      </div>
+      <div class="cell s6">
+        <span class="label"><span><b>■</b> Textarea</span></span>
+        <div class="field"><label class="label" for="f-env">Environment</label><textarea class="input" id="f-env" spellcheck="false">TZ=Europe/London
+DB_HOSTNAME=postgres.astralabs.dev
+UPLOAD_LOCATION=/mnt/pool-a/photos</textarea><span class="hint">One KEY=value per line.</span></div>
+      </div>
+      <div class="cell s6">
+        <span class="label"><span><b>■</b> Upload</span></span>
+        <label class="drop dots" id="drop" for="f-file">
+          <strong>Drop compose files here</strong>
+          <span class="label">or click to browse · .yml .yaml .env</span>
+          <input type="file" id="f-file" multiple class="sr" accept=".yml,.yaml,.env">
+        </label>
+        <div class="files" id="files"><span class="dim">No files yet.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DATA ===================== -->
+  <section id="data" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Data</h2><span class="label">Tables · meters · gauges · logs · code</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s12">
+        <span class="label"><span><b>■</b> Service table</span><span>Click headers to sort · rows to select</span></span>
+        <div class="chips" id="filter" role="group" aria-label="Filter by state"></div>
+        <div class="tbl-wrap">
+          <table class="tbl" id="svc-tbl">
+            <thead><tr>
+              <th aria-hidden="true" style="width:1%"><button type="button" tabindex="-1" style="cursor:default">#</button></th>
+              <th data-k="name" aria-sort="ascending"><button type="button">Service</button></th>
+              <th data-k="host"><button type="button">Host</button></th>
+              <th data-k="state"><button type="button">State</button></th>
+              <th data-k="cpu" class="num"><button type="button">CPU</button></th>
+              <th data-k="mem" class="num"><button type="button">Mem</button></th>
+              <th data-k="p50" class="num"><button type="button">p50</button></th>
+              <th data-k="ver"><button type="button">Image</button></th>
+            </tr></thead>
+            <tbody id="svc-body"></tbody>
+          </table>
+        </div>
+        <div class="row" style="justify-content:space-between"><span class="label" id="svc-count"></span><div class="pager" id="pager" aria-label="Pages"></div></div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Meters</span><span>▼ alert threshold</span></span>
+        <div class="meter" style="--v:68%;--thr:85%"><div class="top"><span class="label">pool-a</span><span class="mono" style="font-size:11px">2.72 / 4.00 TB</span></div><div class="track"><span class="fill"></span><span class="thr"></span></div><div class="ruler"></div></div>
+        <div class="meter warn" style="--v:91%;--thr:85%"><div class="top"><span class="label">backup-b</span><span class="mono" style="font-size:11px">1.82 / 2.00 TB</span></div><div class="track"><span class="fill"></span><span class="thr"></span></div><div class="ruler"></div></div>
+        <div class="meter" style="--v:22%;--thr:85%"><div class="top"><span class="label">scratch</span><span class="mono" style="font-size:11px">110 / 500 GB</span></div><div class="track"><span class="fill"></span><span class="thr"></span></div><div class="ruler"></div><div class="scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Gauges</span><span>node-02</span></span>
+        <div class="row" style="justify-content:space-around">
+          <div class="gauge" data-v="0.72" data-l="CPU"></div>
+          <div class="gauge" data-v="0.38" data-l="Memory"></div>
+        </div>
+        <dl class="leaders">
+          <div><dt>Host</dt><i></i><dd>node-02.astralabs.dev</dd></div>
+          <div><dt>Address</dt><i></i><dd>10.0.0.12</dd></div>
+          <div><dt>Kernel</dt><i></i><dd>6.12.9-amd64</dd></div>
+          <div><dt>Serial</dt><i></i><dd>AL-0451-NODE02 REV C</dd></div>
+        </dl>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Code</span></span>
+        <div class="code">
+          <div class="code-bar"><span class="label">compose.yml</span><button class="btn btn-quiet btn-sm" type="button" id="copy-code">Copy</button></div>
+<pre id="code-src"><span class="l"><span class="k">services</span>:</span><span class="l">  <span class="k">immich</span>:</span><span class="l">    image: ghcr.io/immich-app/immich-server:v1.119</span><span class="l">    restart: unless-stopped</span><span class="l">    ports: ["2283:2283"]</span><span class="l">    volumes:</span><span class="l">      - /mnt/pool-a/photos:/usr/src/app/upload</span><span class="l">    <span class="c"># reverse proxy: photos.astralabs.dev</span></span></pre>
+        </div>
+        <div class="row"><span class="tag acid">media</span><span class="tag">gpu</span><span class="tag">zfs</span><span class="tag">tailnet <button type="button" aria-label="Remove tailnet tag">×</button></span></div>
+        <div class="row"><span class="badge"><span>build</span><span>passing</span></span><span class="badge"><span>uptime</span><span>99.94%</span></span></div>
+      </div>
+      <div class="cell s12">
+        <span class="label"><span><b>■</b> Live log</span><span><button class="btn btn-quiet btn-sm" type="button" id="log-toggle">Pause</button></span></span>
+        <div class="log" id="log" role="log" aria-live="off"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GRAPHS ===================== -->
+  <section id="graphs" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Graphs</h2><span class="label">Live · hover for values · every chart reads as a table</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s8 chart-card" data-chart="cpu">
+        <div class="ch-head"><h3>CPU · node-02</h3><div class="acts"><span class="ch-live">Live · 1s</span><button class="mini-btn" type="button" data-pause>Pause</button><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="chart" id="c-cpu"></div><div class="ch-table" hidden></div>
+        <span class="ch-note">Alert line at <b>85%</b>. A crossing drops a marker on the time axis.</span>
+      </div>
+      <div class="cell s4 chart-card" data-chart="rps">
+        <div class="ch-head"><h3>Requests per second · caddy</h3><div class="acts"><span class="ch-live">Live · 1s</span><button class="mini-btn" type="button" data-pause>Pause</button><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="chart" id="c-rps"></div><div class="ch-table" hidden></div>
+        <span class="ch-note">Peak in window labelled.</span>
+      </div>
+      <div class="cell s12 chart-card" data-chart="net">
+        <div class="ch-head"><h3>Network · wg0</h3><div class="acts"><span class="ch-live">Live · 1s</span><button class="mini-btn" type="button" data-pause>Pause</button><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="ch-legend"><span><i style="background:#70a600"></i>rx · received</span><span><i style="background:#0486d3"></i>tx · sent</span></div><div class="chart" id="c-net"></div><div class="ch-table" hidden></div>
+        <span class="ch-note">Axis rescales smoothly when traffic bursts.</span>
+      </div>
+      <div class="cell  chart-card" data-chart="store">
+        <div class="ch-head"><h3>Storage by dataset · pool-a</h3><div class="acts"><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="chart" id="c-store"></div><div class="ch-table" hidden></div>
+        
+      </div>
+      <div class="cell  chart-card" data-chart="mem">
+        <div class="ch-head"><h3>Memory by service · node-02</h3><div class="acts"><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="ch-legend"><span><i class="sq" style="background:#70a600"></i>immich 3.8G</span><span><i class="sq" style="background:#0486d3"></i>jellyfin 2.2G</span><span><i class="sq" style="background:#c13b9f"></i>nextcloud 1.4G</span><span><i class="sq" style="background:#5a5452"></i>other 2.4G</span></div><div class="chart" id="c-mem"></div><div class="ch-table" hidden></div>
+        
+      </div>
+      <div class="cell  chart-card" data-chart="lat">
+        <div class="ch-head"><h3>Latency · caddy · last hour</h3><div class="acts"><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="chart" id="c-lat"></div><div class="ch-table" hidden></div>
+        <span class="ch-note"><b>p50</b> 18ms · <b>p95</b> 124ms</span>
+      </div>
+      <div class="cell s12 chart-card" data-chart="up">
+        <div class="ch-head"><h3>Uptime · gitea · 90 days</h3><div class="acts"><button class="mini-btn" type="button" data-table aria-pressed="false">Table</button></div></div>
+        <div class="ch-legend"><span><i class="sq st-ok"></i>Operational</span><span><i class="sq st-warn"></i>Degraded</span><span><i class="sq st-down"></i>Outage</span></div><div class="chart" id="c-up"></div><div class="ch-table" hidden></div>
+        <span class="ch-note"><b>99.94%</b> · 1 outage · 3 degraded days</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FEEDBACK ===================== -->
+  <section id="feedback" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Feedback</h2><span class="label">Alerts · toasts · dialogs · loading</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s6">
+        <span class="label"><span><b>■</b> Alerts</span><span>Shape + word, never colour alone</span></span>
+        <div style="display:grid">
+          <div class="alert"><div><h4>Certificate renews in 12 days</h4><p>*.astralabs.dev renews automatically through the ACME client on node-01.</p></div><button class="x" type="button" aria-label="Dismiss">×</button><span class="meta">caddy · 09:12</span></div>
+          <div class="alert ok"><div><h4>Backup complete</h4><p>restic snapshot 4f2a91c · 182 GB · finished 03:14.</p></div><button class="x" type="button" aria-label="Dismiss">×</button><span class="meta">restic · 03:14</span></div>
+          <div class="alert warn"><div><h4>backup-b is 91% full</h4><p>Prune snapshots older than 90 days or add a disk.</p></div><button class="x" type="button" aria-label="Dismiss">×</button><span class="meta">zfs · 02:58</span></div>
+          <div class="alert down"><div><h4>home-assistant is offline</h4><p>No response on 10.0.0.12:8123 for 4 minutes. Last log: OOM killed.</p></div><button class="x" type="button" aria-label="Dismiss">×</button><span class="meta">uptime-kuma · 22:41</span></div>
+        </div>
+      </div>
+      <div class="cell s3">
+        <span class="label"><span><b>■</b> Toasts</span></span>
+        <div class="stack" style="justify-items:start">
+          <button class="btn btn-quiet btn-sm" type="button" data-toast="Restarted|jellyfin is back online in 4.2s">Restart jellyfin</button>
+          <button class="btn btn-quiet btn-sm" type="button" data-toast="Copied|ssh emily@node-02.astralabs.dev">Copy SSH</button>
+          <button class="btn btn-quiet btn-sm" type="button" data-toast="Snapshot taken|pool-a@2026-10-16-2215">Snapshot</button>
+        </div>
+        <p class="dim" style="font-size:13px">Appear bottom-right, a 4-second line counts down, then leave.</p>
+      </div>
+      <div class="cell s3">
+        <span class="label"><span><b>■</b> Dialog</span></span>
+        <div class="stack" style="justify-items:start">
+          <button class="btn btn-danger" type="button" data-open-modal>Wipe pool-a</button>
+          <p class="dim" style="font-size:13px">Destructive actions ask you to type the target's name. The only outlined cut in the kit.</p>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Tooltip</span></span>
+        <div class="row" style="padding-top:34px">
+          <span class="tip"><button class="btn btn-quiet btn-sm" type="button" aria-describedby="tip-1">p50</button><span role="tooltip" id="tip-1">Median response, last 15 min</span></span>
+          <span class="tip"><button class="btn btn-quiet btn-sm" type="button" aria-describedby="tip-2">REV C</button><span role="tooltip" id="tip-2">Third hardware revision</span></span>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Loading</span><span><button class="btn btn-quiet btn-sm" type="button" id="reload">Reload</button></span></span>
+        <div class="skel" id="skel" aria-hidden="true" hidden><i style="width:70%"></i><i></i><i style="width:85%"></i><i style="width:40%"></i></div>
+        <div class="decoding" id="decoding">photos.astralabs.dev</div>
+      </div>
+      <div class="cell">
+        <span class="label"><span><b>■</b> Empty state</span></span>
+        <div class="empty">
+          <div class="dots fade" aria-hidden="true"></div>
+          <span class="glyph">[ / ]</span>
+          <strong>No backups scheduled</strong>
+          <p>Nightly snapshots keep 30 days of history. Add a schedule to start.</p>
+          <button class="btn btn-ghost btn-sm" type="button" data-toast="Schedule added|pool-a nightly at 03:00, keep 30">Add schedule</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== NAVIGATION ===================== -->
+  <section id="nav" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Navigation</h2><span class="label">Tabs · steps · palette</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s6">
+        <span class="label"><span><b>■</b> Tabs</span></span>
+        <div class="tabs" role="tablist" aria-label="Service" id="tabs">
+          <button role="tab" aria-selected="true" aria-controls="tp" id="tab-0">Overview</button>
+          <button role="tab" aria-selected="false" aria-controls="tp" id="tab-1" tabindex="-1">Logs</button>
+          <button role="tab" aria-selected="false" aria-controls="tp" id="tab-2" tabindex="-1">Volumes</button>
+          <button role="tab" aria-selected="false" aria-controls="tp" id="tab-3" tabindex="-1">Network</button>
+          <span class="ind" aria-hidden="true"></span>
+        </div>
+        <div class="tabpanel" role="tabpanel" id="tp" aria-labelledby="tab-0">immich on node-02 · 3 containers · up 6d 14h.</div>
+      </div>
+      <div class="cell s6">
+        <span class="label"><span><b>■</b> Breadcrumbs</span></span>
+        <nav class="crumbs" aria-label="Breadcrumb example"><a href="#nav">astralabs</a><span class="sep">/</span><a href="#nav">node-02</a><span class="sep">/</span><a href="#nav">services</a><span class="sep">/</span><span aria-current="page">immich</span></nav>
+        <span class="label" style="margin-top:8px">Pagination</span>
+        <div class="pager" id="pager-demo" aria-label="Pages example"></div>
+      </div>
+      <div class="cell s12">
+        <span class="label"><span><b>■</b> Deploy pipeline</span><span><button class="btn btn-ghost btn-sm" type="button" id="run-deploy">Run deploy</button></span></span>
+        <div class="steps" id="steps"></div>
+      </div>
+      <div class="cell s12 dots" style="background-size:16px 16px">
+        <span class="label"><span><b>■</b> Command palette</span><span>Ctrl K / ⌘ K</span></span>
+        <div class="row" style="justify-content:center;padding:8px 0">
+          <div class="cmdk ticks" id="cmdk-inline"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PAGES ===================== -->
+  <section id="pages" data-reveal>
+    <div class="sec-head"><div class="t"><h2>Pages</h2><span class="label">Not found · maintenance</span></div><div class="mrule"><i></i></div></div>
+    <div class="sheet">
+      <div class="cell s6" style="padding:0">
+        <div class="page-mock">
+          <div class="dots fade" aria-hidden="true"></div>
+          <span class="corner" style="top:16px;left:18px">404</span>
+          <div class="inner">
+            <div class="code404" aria-label="ASTRA/404"><span class="br">[</span>ASTRA<span class="sl">/</span>404<span class="br">]</span></div>
+            <p>Nothing at <span class="mono" style="color:var(--bone)">/astra/labs/old-wiki</span>. It may have moved during the last migration.</p>
+            <div class="row"><a class="btn btn-primary btn-sm" href="#login">Go to dashboard</a><a class="btn btn-quiet btn-sm" href="#terminal">Search</a></div>
+          </div>
+        </div>
+      </div>
+      <div class="cell s6" style="padding:0">
+        <div class="page-mock">
+          <div class="hz-top hazard"></div>
+          <div class="inner">
+            <span class="label"><b>■</b> Scheduled maintenance</span>
+            <span class="lock" style="font-size:34px"><svg class="mk" viewBox="0 0 600 519.62" aria-hidden="true"><use href="#mark"/></svg><span class="wm" aria-label="AstraLabs, loading"><span class="br lb">[</span><span class="in">ASTRA<i class="sl" id="mt-sl">/</i>LABS</span><span class="br rb">]</span></span></span>
+            <span class="eta" id="eta">05:59</span>
+            <p>node-02 is rebooting for a kernel update. Jellyfin and Immich are back when the timer runs out.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-foot">
+    <div class="mrule"><i></i></div>
+    <div class="stack">
+      <span class="lock"><svg class="mk" viewBox="0 0 600 519.62" aria-hidden="true"><use href="#mark"/></svg><span class="wm" aria-hidden="true"><span class="br lb">[</span><span class="in">ASTRA<i class="sl">/</i>LABS</span><span class="br rb">]</span></span></span>
+      <p class="dim" style="font-size:13px">Homelab and projects by Emily Astranova.</p>
+    </div>
+    <div class="stack"><span class="label">Services</span><ul><li><a href="#shell">Grid</a></li><li><a href="#login">Vault</a></li><li><a href="#terminal">Relay</a></li></ul></div>
+    <div class="stack"><span class="label">Docs</span><ul><li><a href="#data">Runbooks</a></li><li><a href="#forms">Compose</a></li><li><a href="#pages">Status</a></li></ul></div>
+    <div class="stack"><span class="label">Node</span><ul><li class="dim">node-02</li><li class="dim">Debian 13</li><li class="dim">Build 8dc01b2</li></ul></div>
+    <div class="fine label"><span>© 2026 AstraLabs · Emily Astranova</span><span>Self-hosted on node-02.astralabs.dev</span></div>
+  </footer>
+
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div class="scrim" id="modal" hidden>
+  <div class="modal" id="modal-box" role="dialog" aria-modal="true" aria-labelledby="m-title" aria-describedby="m-desc">
+    <div class="in">
+      <div class="hazard" aria-hidden="true"></div>
+      <div class="body">
+        <span class="label" style="color:var(--down)">■ Destructive action</span>
+        <h3 id="m-title">Wipe pool-a?</h3>
+        <p id="m-desc">This destroys every dataset and snapshot on <code>pool-a</code> (2.72 TB). It cannot be undone. Type the pool name to confirm.</p>
+        <div class="field"><label class="label" for="m-confirm">Pool name</label><input class="input" id="m-confirm" autocomplete="off" spellcheck="false" placeholder="pool-a"></div>
+        <div class="actions"><button class="btn btn-quiet" type="button" id="m-cancel">Cancel</button><button class="btn btn-danger" type="button" id="m-go" disabled>Wipe pool-a</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="scrim" id="cmdk-modal" hidden><div class="cmdk ticks" id="cmdk-float" role="dialog" aria-modal="true" aria-label="Command palette"></div></div>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const SPIN = ['/', '—', '\\', '|'];
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pad = n => String(n).padStart(2, '0');
+
+  /* ---------- motion profile ---------- */
+  const E = { snap: 'cubic-bezier(.3,1.35,.5,1)', trace: 'cubic-bezier(.7,0,.2,1)', settle: 'cubic-bezier(.16,1,.3,1)' };
+  // Strobe-in: off, on, off, on, dim, on. 340ms in hard steps so each flick is visible
+  // WAAPI applies a timing function to the whole animation; hard cuts must be set per keyframe
+  const hard = kf => kf.map(k => ({ easing: 'steps(1, end)', ...k }));
+  const STROBE = hard([{ opacity: 0 }, { opacity: 1, offset: .12 }, { opacity: 0, offset: .24 }, { opacity: 1, offset: .4 }, { opacity: .35, offset: .56 }, { opacity: 1, offset: .72 }, { opacity: 1 }]);
+  const T_STROBE = 340, T_WIPE = 560, STAGGER = 60;
+  const TUBE = [{ opacity: 0 }, { opacity: .85, offset: .08 }, { opacity: 0, offset: .12 }, { opacity: 0, offset: .3 }, { opacity: .5, offset: .33 }, { opacity: .1, offset: .36 }, { opacity: 1, offset: .52 }, { opacity: .35, offset: .55 }, { opacity: 1, offset: .6 }, { opacity: 1 }];
+  // No entrance animations: the page is simply there, ready to read.
+
+  function count(el, to, dec = 0, dur = 600) {
+    if (reduce) { el.textContent = to.toFixed(dec); return; }
+    const t0 = performance.now();
+    const f = () => { const p = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - p, 4); el.textContent = (to * e).toFixed(dec); if (p < 1) requestAnimationFrame(f); };
+    f();
+  }
+
+  /* ---------- toasts ---------- */
+  function toast(title, body) {
+    const t = document.createElement('div');
+    t.className = 'toast ticks';
+    t.innerHTML = `<span class="bar"></span><strong>${esc(title)}</strong><span class="label">${esc(body || '')}</span><button type="button">Dismiss</button>`;
+    let gone = false;
+    const kill = () => { if (gone) return; gone = true; if (reduce) return t.remove(); t.animate([{ clipPath: 'inset(0 0 0 0)', opacity: 1 }, { clipPath: 'inset(0 0 0 100%)', opacity: .6 }], { duration: 240, easing: E.trace, fill: 'forwards' }).finished.then(() => t.remove()); };
+    $('button', t).addEventListener('click', kill);
+    $('#toasts').appendChild(t);
+    if (!reduce) $('.bar', t).animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }], { duration: 4000, easing: 'linear', fill: 'forwards' });
+    setTimeout(kill, 4000);
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-toast]'); if (b) { const [a, c] = b.dataset.toast.split('|'); toast(a, c); } });
+
+  function spinner(el) { let i = 0; const t = setInterval(() => { el.textContent = SPIN[i++ % 4]; }, 90); return () => { clearInterval(t); el.textContent = '/'; }; }
+
+  /* ---------- the login boots when it first comes into view; nothing else animates in ---------- */
+  // sections already on screen at load stay put (the first frame is what thumbnails and skimmers see)
+  const onScreen = el => { const r = el.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0; };
+  if (!reduce && 'IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (!e.isIntersecting) return; io.unobserve(e.target);
+      const s = e.target;
+      if (s.id === 'login') bootLogin();
+    }), { threshold: .25 });
+    $$('[data-reveal]').forEach(s => { if (!onScreen(s)) io.observe(s); else if (s.id === 'login') requestAnimationFrame(() => bootLogin()); });
+  }
+  $('#lg-replay').addEventListener('click', bootLogin);
+  // section marker in the top bar
+  if ('IntersectionObserver' in window) {
+    const links = $$('#jump a');
+    const io2 = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }), { rootMargin: '-45% 0px -50% 0px' });
+    $$('[data-reveal]').forEach(s => io2.observe(s));
+  }
+
+  /* ---------- login art: dot field, then reboot sequence ---------- */
+
+  /* dot field: 14px grid, brighter toward the centre; p = ignition progress (1 = at rest) */
+  function drawField(p) {
+    const c = $('#lg-field'), r = c.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+    c.width = r.width * dpr; c.height = r.height * dpr;
+    const x = c.getContext('2d'); x.scale(dpr, dpr);
+    // origin = centre of the mark, so the ring visibly leaves the logo
+    const m = $('#lg-mk').getBoundingClientRect(), W = r.width, H = r.height, cx = m.left - r.left + m.width / 2, cy = m.top - r.top + m.height * .62;
+    const max = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy)), R = max * p;
+    for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+      const d = Math.hypot(gx - cx, gy - cy), edge = Math.max(0, 1 - d / max);
+      // dots the ring hasn't reached yet sit unlit, so the grid is visible before it ignites
+      if (d > R) { if (p < 1) { x.fillStyle = 'rgba(237,230,225,.11)'; x.fillRect(gx - .75, gy - .75, 1.5, 1.5); } continue; }
+      const ring = Math.max(0, 1 - Math.abs(d - R) / 22);
+      x.fillStyle = ring > .05 && p < 1 ? `rgba(182,255,46,${.3 + ring * .7})` : `rgba(237,230,225,${.12 + edge * .2})`;
+      x.fillRect(gx - .75, gy - .75, 1.5, 1.5);
+    }
+  }
+  function igniteField(tok) {
+    const t0 = performance.now();
+    const HOLD = 450, DUR = 1300;  // hold the unlit grid, then ignite on an ease-in-out so the start reads at the centre
+    lgIdle.stop();
+    const f = () => { if (tok !== bootTok) return; const el = performance.now() - t0, t = Math.min(1, Math.max(0, (el - HOLD) / DUR)), e = t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; drawField(Math.max(.0001, e)); if (t >= 1) { lgIdle.start(true); return; } requestAnimationFrame(f); };
+    f();
+  }
+
+  /* ================= DOT FIELD · IDLE (Sea) =================
+     Runs after ignition. The dots never move. Their grey shifts very slightly with a slow height field,
+     like ocean swell seen from straight above: a few long waves crossing at different angles and speeds,
+     summed so they interfere. Greys only, about ±14% around the resting brightness. */
+  const SEA_WAVES = [  // wavelength px, direction deg, speed px/s, weight
+    [620, 18, 9, .34], [430, 112, 7, .26], [300, 205, 11, .2], [760, 290, 6, .2],
+  ].map(([l, deg, v, w], i) => { const a = deg * Math.PI / 180; return { kx: Math.cos(a) * 2 * Math.PI / l, ky: Math.sin(a) * 2 * Math.PI / l, w: v * 2 * Math.PI / l, a: w, p: i * 1.7 }; });
+  const FIELD_MODES = { sea: { name: 'Sea', desc: 'The dots stay still. Their grey rises and falls by about 14% with a slow height field, like ocean swell seen from above: four long waves at different angles and speeds, crossing and interfering.' } };
+  function fieldIdle(canvas, o = {}) {
+    const st = { k: o.k == null ? 1 : o.k, origin: o.origin || null, ramp: 0, running: false, raf: 0, t0: performance.now(), visible: true };
+    const reduceF = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ctx = canvas.getContext('2d');
+    let W = 0, H = 0, dpr = 1;
+    const size = () => { const r = canvas.getBoundingClientRect(); dpr = devicePixelRatio || 1; W = r.width; H = r.height; canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); };
+    const pos = () => { if (st.origin) { const a = st.origin(), r = canvas.getBoundingClientRect(); return [a.x - r.left, a.y - r.top]; } return [W / 2, H / 2]; };
+    function frame(now) {
+      const t = (now - st.t0) / 1000, amp = .14 * st.k * st.ramp;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const [cx, cy] = pos(), max = Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy));
+      for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+        let h = 0; for (const w of SEA_WAVES) h += w.a * Math.sin(gx * w.kx + gy * w.ky - t * w.w + w.p);
+        const rest = .12 + Math.max(0, 1 - Math.hypot(gx - cx, gy - cy) / max) * .2;   // same resting grey as the end of ignition
+        ctx.fillStyle = `rgba(237,230,225,${Math.max(.04, rest + h * amp).toFixed(3)})`;
+        ctx.fillRect(gx - .75, gy - .75, 1.5, 1.5);
+      }
+    }
+    function loop(now) { if (!st.running) return; if (st.ramp < 1) st.ramp = Math.min(1, st.ramp + 1 / 120); if (st.visible && !document.hidden) frame(now); st.raf = requestAnimationFrame(loop); }
+    size(); addEventListener('resize', () => { size(); if (!st.running) frame(performance.now()); });
+    if ('IntersectionObserver' in window) new IntersectionObserver(es => es.forEach(e => st.visible = e.isIntersecting)).observe(canvas);
+    return {
+      start(rampIn = true) { if (reduceF) { st.ramp = 0; frame(performance.now()); return; } st.ramp = rampIn ? 0 : 1; if (!st.running) { st.running = true; st.raf = requestAnimationFrame(loop); } },
+      stop() { st.running = false; cancelAnimationFrame(st.raf); },
+      set(p) { Object.assign(st, p); if (!st.running) frame(performance.now()); },
+      resize: size,
+    };
+  }
+
+  // login background: ignition, then the Sea idle field takes over from the same resting frame
+  const lgIdle = fieldIdle($('#lg-field'), { k: 1, origin: () => { const m = $('#lg-mk').getBoundingClientRect(); return { x: m.left + m.width / 2, y: m.top + m.height * .62 }; } });
+  drawField(1); if (reduce) lgIdle.start(); else requestAnimationFrame(() => { if (!bootTok) lgIdle.start(false); });
+  async function bootLogin() {
+    if (reduce) return;
+    const mk = $('#lg-mk'), wm = $('#login-wm');
+    const tok = ++bootTok;
+    wm.style.visibility = 'hidden';
+    igniteField(tok);
+    $$('.ol path', mk).forEach((p, i) => p.animate([{ opacity: 1, strokeDashoffset: 1 }, { opacity: 1, strokeDashoffset: 0, offset: .75 }, { opacity: 0, strokeDashoffset: 0 }], { duration: 1200, delay: 1000 + i * 140, easing: E.trace }));
+    $('.fl', mk).animate(TUBE, { duration: 800, delay: 1650, fill: 'backwards' });
+    await wait(2300);
+    wm.style.visibility = '';
+    if (tok === bootTok) pathBoot(wm, () => tok === bootTok);
+  }
+  let bootTok = 0;
+  /* wordmark load: [ spinner ] first, then ASTRA types in left of the spinner, then LABS on its right, then the slash settles and the brackets snap */
+  async function pathBoot(wm, live, o = {}) {
+    const inner = $('.in', wm), lb = $('.lb', wm), rb = $('.rb', wm);
+    inner.innerHTML = '<span class="pa"></span><i class="sl">/</i><span class="pb"></span>';
+    const a = $('.pa', inner), b = $('.pb', inner), sl = $('.sl', inner);
+    [lb, rb, sl].forEach(el => el.animate(STROBE, { duration: T_STROBE, easing: 'linear', fill: 'backwards' }));
+    let i = 0; const spin = setInterval(() => { sl.textContent = SPIN[i++ % 4]; }, 90);
+    const stop = () => { clearInterval(spin); sl.textContent = '/'; a.textContent = 'ASTRA'; b.textContent = 'LABS'; };
+    await wait(o.hold ?? 480); if (!live()) return stop();
+    for (const c of 'ASTRA') { a.textContent += c; await wait(o.speed ?? 60); if (!live()) return stop(); }
+    await wait(o.gap ?? 200); if (!live()) return stop();
+    for (const c of 'LABS') { b.textContent += c; await wait(o.speed ?? 60); if (!live()) return stop(); }
+    await wait(220); stop();
+    lb.animate([{ transform: 'none' }, { transform: 'translateX(-.35em)', offset: .4 }, { transform: 'none' }], { duration: 360, easing: E.snap });
+    rb.animate([{ transform: 'none' }, { transform: 'translateX(.35em)', offset: .4 }, { transform: 'none' }], { duration: 360, easing: E.snap });
+  }
+
+  /* ---------- login ---------- */
+  $('#lg-show').addEventListener('click', e => { const p = $('#lg-pass'), show = p.type === 'password'; p.type = show ? 'text' : 'password'; e.currentTarget.textContent = show ? 'Hide' : 'Show'; e.currentTarget.setAttribute('aria-pressed', String(show)); });
+  const lgWm = $('#login-wm');
+  /* panes flicker out, then the next one flickers in line by line */
+  const FLICK_OUT = hard([{ opacity: 1 }, { opacity: 0, offset: .18 }, { opacity: 1, offset: .3 }, { opacity: .35, offset: .48 }, { opacity: 0, offset: .66 }, { opacity: 0 }]);
+  async function swapPane(from, to) {
+    if (!reduce) await from.animate(FLICK_OUT, { duration: 300, fill: 'forwards' }).finished.catch(() => {});
+    from.getAnimations().forEach(a => a.cancel()); from.hidden = true; to.hidden = false;
+    if (!reduce) Array.from(to.children).forEach((c, i) => c.animate(STROBE, { duration: T_STROBE, delay: i * 50, fill: 'backwards' }));
+    const f = to.querySelector('button, input'); if (f) f.focus({ preventScroll: true });
+  }
+  const panes = { form: $('#lp-form'), sso: $('#lp-sso'), ok: $('#lp-ok') };
+  const resetBtn = (b, label) => { b.classList.remove('is-busy'); b.textContent = label; };
+  function grantedHTML(via) {
+    const user = esc($('#lg-user').value || 'emily'), days = via === 'sso' ? '12 hours' : $('#lg-remember').checked ? '30 days' : '12 hours';
+    return `<span class="big">Access granted</span><h3>Welcome back, ${user}</h3><span class="host">Session on <b>vault.astralabs.dev</b> · ${via === 'sso' ? 'via auth.astralabs.dev · ' : ''}expires in ${days}</span><button class="btn btn-ghost" type="button" id="lg-reset">Sign out</button>`;
+  }
+  async function grant(from, via) {
+    panes.ok.innerHTML = grantedHTML(via);
+    await swapPane(from, panes.ok);
+    $('#lg-reset').addEventListener('click', async () => { resetBtn($('#lg-submit'), 'Authenticate'); resetBtn($('#lg-sso'), 'Continue with SSO · auth.astralabs.dev'); $('#lg-pass').value = ''; await swapPane(panes.ok, panes.form); });
+  }
+  async function authenticate() {
+    const btn = $('#lg-submit'), pass = $('#lg-pass'), err = $('#lg-err');
+    err.hidden = true; pass.removeAttribute('aria-invalid');
+    if (pass.value.length < 8) {
+      err.textContent = pass.value ? 'Passphrase rejected. It is at least 8 characters; check caps lock.' : 'Enter your passphrase.';
+      err.hidden = false; pass.setAttribute('aria-invalid', 'true'); pass.focus(); return;
+    }
+    btn.classList.add('is-busy'); btn.innerHTML = '<span class="spin">/</span> Authenticating';
+    bootTok++; lgWm.style.visibility = ''; const stopA = spinner($('.spin', btn)), stopB = reduce ? () => {} : spinner($('.sl', lgWm));
+    await wait(1600); stopA(); stopB();
+    await grant(panes.form, 'pass');
+  }
+  // SSO: redirect, flicker over to the identity provider, approve with a passkey, flicker to granted
+  let ssoSpin = null;
+  async function startSSO() {
+    const btn = $('#lg-sso');
+    btn.classList.add('is-busy'); btn.innerHTML = '<span class="spin">/</span> Redirecting';
+    const stop = spinner($('.spin', btn)); await wait(700); stop();
+    $('#sso-user').textContent = $('#lg-user').value || 'emily';
+    $('#sso-msg').textContent = 'Waiting for your passkey'; $('.sso-status').classList.remove('is-ok');
+    resetBtn($('#sso-go'), 'Use passkey');
+    await swapPane(panes.form, panes.sso);
+    ssoSpin = reduce ? null : spinner($('#sso-sl'));
+  }
+  $('#sso-go').addEventListener('click', async e => {
+    const b = e.currentTarget; if (b.classList.contains('is-busy')) return;
+    b.classList.add('is-busy'); b.textContent = 'Verifying';
+    $('#sso-msg').textContent = 'Verifying passkey on this device';
+    await wait(1200);
+    if (ssoSpin) { ssoSpin(); ssoSpin = null; }
+    $('#sso-msg').textContent = 'Approved · returning to vault'; $('.sso-status').classList.add('is-ok');
+    await wait(600);
+    resetBtn($('#lg-sso'), 'Continue with SSO · auth.astralabs.dev');
+    await grant(panes.sso, 'sso');
+  });
+  $('#sso-cancel').addEventListener('click', async () => {
+    if (ssoSpin) { ssoSpin(); ssoSpin = null; }
+    resetBtn($('#lg-sso'), 'Continue with SSO · auth.astralabs.dev');
+    await swapPane(panes.sso, panes.form);
+  });
+  $('#login-form').addEventListener('submit', e => { e.preventDefault(); authenticate(); });
+  $('#lg-sso').addEventListener('click', startSSO);
+
+  /* ---------- terminal ---------- */
+  const out = $('#term-out'), tin = $('#term-input'), tbody = $('#term-body');
+  const LOCK = '<span class="lock"><svg class="mk" viewBox="0 0 600 519.62" aria-hidden="true"><use href="#mark"/></svg><span class="wm" aria-label="AstraLabs"><span class="br lb">[</span><span class="in">ASTRA<i class="sl">/</i>LABS</span><span class="br rb">]</span></span></span>';
+  const line = (html = '') => { const d = document.createElement('div'); d.className = 'ln'; d.innerHTML = html; out.appendChild(d); tbody.scrollTop = tbody.scrollHeight; return d; };
+  const hist = []; let hi = 0;
+  const SERVICES = [
+    { name: 'gitea', host: 'node-01', state: 'ok', cpu: 1.2, mem: 312, p50: 18, ver: 'gitea:1.22.3' },
+    { name: 'jellyfin', host: 'node-02', state: 'ok', cpu: 14.8, mem: 2210, p50: 42, ver: 'jellyfin:10.10.1' },
+    { name: 'immich', host: 'node-02', state: 'warn', cpu: 38.5, mem: 3870, p50: 310, ver: 'immich:v1.119.0' },
+    { name: 'vaultwarden', host: 'node-01', state: 'ok', cpu: 0.3, mem: 48, p50: 9, ver: 'vaultwarden:1.32.0' },
+    { name: 'restic', host: 'node-01', state: 'sync', cpu: 22.1, mem: 640, p50: null, ver: 'restic:0.17.1' },
+    { name: 'home-assistant', host: 'node-02', state: 'down', cpu: 0, mem: 0, p50: null, ver: 'home-assistant:2024.10' },
+    { name: 'grafana', host: 'node-01', state: 'ok', cpu: 2.4, mem: 186, p50: 24, ver: 'grafana:11.3.0' },
+    { name: 'prometheus', host: 'node-01', state: 'ok', cpu: 6.1, mem: 980, p50: 12, ver: 'prometheus:v2.55' },
+    { name: 'adguard', host: 'pi-03', state: 'ok', cpu: 1.8, mem: 92, p50: 3, ver: 'adguardhome:v0.107' },
+    { name: 'paperless', host: 'node-02', state: 'ok', cpu: 3.3, mem: 720, p50: 66, ver: 'paperless-ngx:2.13' },
+    { name: 'nextcloud', host: 'node-02', state: 'warn', cpu: 11.0, mem: 1430, p50: 480, ver: 'nextcloud:30.0.1' },
+    { name: 'caddy', host: 'node-01', state: 'ok', cpu: 0.6, mem: 41, p50: 2, ver: 'caddy:2.8.4' },
+    { name: 'wireguard', host: 'pi-03', state: 'ok', cpu: 0.2, mem: 12, p50: 1, ver: 'wg-easy:14' },
+    { name: 'uptime-kuma', host: 'pi-03', state: 'ok', cpu: 0.9, mem: 110, p50: 15, ver: 'uptime-kuma:1.23' },
+  ];
+  const WORD = { ok: 'Online', warn: 'Degraded', down: 'Offline', sync: 'Syncing' };
+  const CLS = { ok: 'ok', warn: 'w', down: 'e', sync: 'd' };
+  const CMDS = {
+    help() { line('<span class="d">commands:</span> help  status  uptime  whoami  ping &lt;host&gt;  neofetch  deploy  glitch  date  motd  clear'); },
+    status() { line('<span class="d">SERVICE          HOST      STATE</span>'); SERVICES.slice(0, 8).forEach(s => line(`${s.name.padEnd(16)} ${s.host.padEnd(9)} <span class="${CLS[s.state]}">■ ${WORD[s.state].toUpperCase()}</span>`)); line('<span class="d">… 6 more. Open the Grid dashboard for all 14.</span>'); },
+    uptime() { line(` ${new Date().toTimeString().slice(0, 8)} up 41 days,  6:12,  2 users,  load average: 0.42, 0.38, 0.31`); },
+    whoami() { line('emily <span class="d">(uid 1000, groups: sudo docker media)</span>'); },
+    date() { line(new Date().toString()); },
+    motd() { motd(); },
+    clear() { out.innerHTML = ''; },
+    async ping(a) {
+      const host = a || 'node-01.astralabs.dev', known = /^(node-0[12]|pi-03)(\.astralabs\.lan)?$/.test(host);
+      line(`PING ${esc(host)}: 56 data bytes`);
+      for (let i = 0; i < 4; i++) { await wait(reduce ? 0 : 320); line(known ? `64 bytes from ${esc(host)}: icmp_seq=${i} ttl=64 time=${(0.3 + Math.random() * .5).toFixed(3)} ms` : `<span class="e">Request timeout for icmp_seq ${i}</span>`); }
+      line(known ? '<span class="ok">4 packets transmitted, 4 received, 0% loss</span>' : '<span class="e">4 packets transmitted, 0 received, 100% loss</span> <span class="d">try node-01, node-02 or pi-03</span>');
+    },
+    neofetch() { line(LOCK); [['host', 'node-02.astralabs.dev'], ['os', 'Debian GNU/Linux 13 (trixie)'], ['kernel', '6.12.9-amd64'], ['uptime', '41 days, 6 hours'], ['cpu', 'AMD Ryzen 7 5700G (16)'], ['memory', '18.2 GiB / 64 GiB'], ['disk', 'pool-a 2.72 / 4.00 TB'], ['shell', 'zsh 5.9']].forEach(([k, v]) => line(`<span class="k">${k.padEnd(8)}</span>${v}`)); },
+    async deploy() {
+      const l = line('<span class="k">deploy</span> homelab-ops@8dc01b2 <span class="k" data-s>[/]</span><span> pulling images</span>');
+      const s = $('[data-s]', l), msg = l.lastChild; let i = 0;
+      for (const st of ['pulling images', 'stopping old containers', 'starting containers', 'health checks']) { msg.textContent = ' ' + st; for (let k = 0; k < 8; k++) { s.textContent = `[${SPIN[i++ % 4]}]`; await wait(reduce ? 0 : 90); } }
+      s.textContent = '[/]'; msg.textContent = ' done'; line('<span class="ok">✓ 14/14 containers healthy</span> <span class="d">· 11.4s</span>');
+    },
+    async glitch() {
+      const t = $('#term'); line('<span class="d">signal check…</span>');
+      if (!reduce) for (let i = 0; i < 5; i++) { t.style.transform = `translateX(${(Math.random() * 2 - 1) * 5}px)`; t.style.opacity = i % 2 ? '1' : '.45'; await wait(40); }
+      t.style.transform = ''; t.style.opacity = ''; line('<span class="ok">signal nominal</span>');
+    },
+  };
+  async function run(cmd) {
+    line(`<span class="k">emily@node-02</span><span class="d">:~$</span> ${esc(cmd)}`);
+    const [c, ...args] = cmd.trim().split(/\s+/); if (!c) return;
+    hist.push(cmd); hi = hist.length;
+    if (c === 'sudo') return line('<span class="e">emily is not in the sudoers file. This incident will be reported.</span>');
+    if (c === 'exit') return line('<span class="d">Connection to node-02 stays open here. Try</span> help');
+    if (CMDS[c]) { tin.disabled = true; await CMDS[c](args[0]); tin.disabled = false; tin.focus({ preventScroll: true }); }
+    else line(`<span class="e">zsh: command not found: ${esc(c)}</span> <span class="d">type</span> help`);
+  }
+  tin.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { const v = tin.value; tin.value = ''; run(v); }
+    else if (e.key === 'ArrowUp') { if (hi > 0) { hi--; tin.value = hist[hi]; e.preventDefault(); } }
+    else if (e.key === 'ArrowDown') { if (hi < hist.length - 1) { hi++; tin.value = hist[hi]; } else { hi = hist.length; tin.value = ''; } e.preventDefault(); }
+    else if (e.key === 'l' && e.ctrlKey) { e.preventDefault(); out.innerHTML = ''; }
+  });
+  tbody.addEventListener('click', () => { if (!getSelection().toString()) tin.focus({ preventScroll: true }); });
+  async function motd() {
+    line('<span class="d">Last login: Fri Oct 16 21:04:11 2026 from 10.0.0.12</span>'); line(LOCK);
+    for (const r of ['<span class="k">node-02</span>.astralabs.dev  <span class="d">·</span>  Debian 13  <span class="d">·</span>  up 41d 06h', '<span class="d">load</span> 0.42 0.38 0.31   <span class="d">mem</span> 18.2/64G   <span class="d">zfs</span> pool-a ONLINE', '<span class="ok">●</span> 12/14 containers healthy  <span class="w">● immich degraded</span>  <span class="e">● home-assistant down</span>', '<span class="d">type</span> help <span class="d">for commands</span>']) { await wait(reduce ? 0 : 140); line(r); }
+  }
+  motd();
+
+  /* ---------- shell stats: sparkline over a fine dot grid, last value marked ---------- */
+  const sparkPts = (seed, n = 28) => { let s = seed, pts = []; for (let i = 0; i < n; i++) { s = (s * 9301 + 49297) % 233280; pts.push([i / (n - 1) * 100, 6 + (s / 233280) * 24]); } return pts; };
+  const spark = seed => { const p = sparkPts(seed), d = 'M' + p.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(' L'), last = p[p.length - 1]; return `<div class="spark-box"><div class="dots"></div><svg class="spark" viewBox="0 0 100 38" preserveAspectRatio="none" aria-hidden="true"><line class="hair" x1="0" y1="${last[1]}" x2="100" y2="${last[1]}"/><path class="line" d="${d}"/><rect class="end" x="${last[0] - 1.6}" y="${last[1] - 2}" width="3.2" height="4"/></svg></div>`; };
+  $('#stats').innerHTML = [['Services up', 12, 0, '/ 14', '2 need attention', 11], ['CPU / cluster', 23, 0, '%', '↓ 4% vs 24h avg', 37], ['Egress / wg0', 412, 0, 'Mb/s', 'peak 860 at 20:14', 73], ['pool-a', 2.72, 2, 'TB', '68% of 4.00 TB', 91]]
+    .map(([l, v, d, u, de, s], i) => `<div class="panel ticks stat${i === 0 ? ' is-active' : ''}"><span class="label">${l}</span><span class="v"><b data-v="${v}" data-d="${d}" style="font-weight:300">${v.toFixed(d)}</b> <small>${u}</small></span>${spark(s)}<span class="delta">${de}</span></div>`).join('');
+
+  /* ---------- buttons ---------- */
+  $('#busy-btn').addEventListener('click', async e => {
+    const b = e.currentTarget; b.classList.add('is-busy'); b.innerHTML = '<span class="spin">/</span> Backing up';
+    const stop = spinner($('.spin', b)); await wait(2200); stop();
+    b.classList.remove('is-busy'); b.textContent = 'Run backup'; toast('Backup complete', 'restic snapshot 9b7e02d · 4.1 GB');
+  });
+  const seg = $('#seg'), segSl = $('.slider', seg);
+  const placeSeg = () => { const b = $('button[aria-pressed="true"]', seg); segSl.style.width = b.offsetWidth + 'px'; segSl.style.transform = `translateX(${b.offsetLeft}px)`; };
+  seg.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $$('button', seg).forEach(x => x.setAttribute('aria-pressed', String(x === b))); $('#seg-out').textContent = b.textContent; placeSeg(); });
+  placeSeg(); addEventListener('resize', placeSeg); document.fonts && document.fonts.ready.then(placeSeg);
+
+  /* ---------- forms ---------- */
+  const sw = id => { const i = $('#' + id), s = $('#' + id + '-s'); i.addEventListener('change', () => s.textContent = i.checked ? 'On' : 'Off'); };
+  sw('sw-1'); sw('sw-2');
+  const rng = (id, fmt) => { const i = $('#' + id), o = $('#' + id + '-o'); const f = () => { o.textContent = fmt(+i.value); i.style.setProperty('--p', ((i.value - i.min) / (i.max - i.min) * 100) + '%'); }; i.addEventListener('input', f); f(); };
+  rng('f-mem', v => (v / 1024).toFixed(1) + 'G'); rng('f-cpu', v => String(v));
+  const port = $('#f-port');
+  port.addEventListener('input', () => { const v = +port.value, ok = Number.isInteger(v) && v >= 1 && v <= 65535; port.setAttribute('aria-invalid', String(!ok)); $('#f-port-err').hidden = ok; });
+  const drop = $('#drop'), fileIn = $('#f-file');
+  const showFiles = list => { $('#files').innerHTML = list.length ? list.map(f => `<span>■ ${esc(f.name)} <span class="dim">· ${(f.size / 1024).toFixed(1)} KB</span></span>`).join('') : '<span class="dim">No files yet.</span>'; };
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('is-over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('is-over'); }));
+  drop.addEventListener('drop', e => showFiles(Array.from(e.dataTransfer.files)));
+  fileIn.addEventListener('change', () => showFiles(Array.from(fileIn.files)));
+
+  /* ---------- service table ---------- */
+  let sortK = 'name', sortDir = 1, filt = 'all', page = 1, sel = 'immich';
+  const PER = 8;
+  const counts = SERVICES.reduce((a, s) => (a[s.state] = (a[s.state] || 0) + 1, a), {});
+  $('#filter').innerHTML = [['all', 'All', SERVICES.length], ['ok', 'Online', counts.ok], ['warn', 'Degraded', counts.warn], ['down', 'Offline', counts.down], ['sync', 'Syncing', counts.sync]].map(([k, l, n]) => `<button class="chip" type="button" data-f="${k}" aria-pressed="${k === filt}">${l}<span>${n || 0}</span></button>`).join('');
+  function renderTable(animate) {
+    let rows = SERVICES.filter(s => filt === 'all' || s.state === filt);
+    rows.sort((a, b) => { const x = a[sortK], y = b[sortK]; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'number' ? x - y : String(x).localeCompare(y)) * sortDir; });
+    const pages = Math.max(1, Math.ceil(rows.length / PER)); page = Math.min(page, pages);
+    const view = rows.slice((page - 1) * PER, page * PER);
+    $('#svc-body').innerHTML = view.map((s, i) => `<tr data-n="${s.name}" class="${s.name === sel ? 'is-selected' : ''}" tabindex="0"><td class="idx">${pad((page - 1) * PER + i + 1)}</td><td>${s.name}</td><td class="dim">${s.host}.astralabs.dev</td><td><span class="pill ${s.state}">${WORD[s.state]}</span></td><td class="num">${s.cpu.toFixed(1)}%</td><td class="num">${s.mem >= 1000 ? (s.mem / 1024).toFixed(2) + 'G' : s.mem + 'M'}</td><td class="num">${s.p50 == null ? '—' : s.p50 + 'ms'}</td><td class="dim">${s.ver}</td></tr>`).join('');
+    $('#svc-count').textContent = `${rows.length} services · page ${page} of ${pages} · example data`;
+    $('#pager').innerHTML = `<button type="button" data-p="${page - 1}" aria-label="Previous page" ${page === 1 ? 'disabled' : ''}>‹</button>` + Array.from({ length: pages }, (_, i) => `<button type="button" data-p="${i + 1}" ${i + 1 === page ? 'aria-current="page"' : ''}>${i + 1}</button>`).join('') + `<button type="button" data-p="${page + 1}" aria-label="Next page" ${page === pages ? 'disabled' : ''}>›</button>`;
+    $$('#svc-tbl th[data-k]').forEach(th => { if (th.dataset.k === sortK) th.setAttribute('aria-sort', sortDir > 0 ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort'); });
+  }
+  $('#svc-tbl thead').addEventListener('click', e => { const th = e.target.closest('th[data-k]'); if (!th) return; if (sortK === th.dataset.k) sortDir *= -1; else { sortK = th.dataset.k; sortDir = 1; } renderTable(true); });
+  $('#filter').addEventListener('click', e => { const c = e.target.closest('.chip'); if (!c) return; filt = c.dataset.f; page = 1; $$('#filter .chip').forEach(x => x.setAttribute('aria-pressed', String(x === c))); renderTable(true); });
+  $('#pager').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (!b || b.disabled) return; page = +b.dataset.p; renderTable(true); });
+  const pickRow = tr => { if (!tr) return; sel = tr.dataset.n; renderTable(false); };
+  $('#svc-body').addEventListener('click', e => pickRow(e.target.closest('tr')));
+  $('#svc-body').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickRow(e.target.closest('tr')); } });
+  renderTable(false);
+
+  /* ---------- gauges: one ring, one arc, four markers ---------- */
+  function drawGauge(g, animate = true) {
+    const v = +g.dataset.v, r = 46, C = 2 * Math.PI * r;
+    let marks = ''; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 - Math.PI / 2; marks += `<line class="mk4" x1="${Math.cos(a) * 51}" y1="${Math.sin(a) * 51}" x2="${Math.cos(a) * 56}" y2="${Math.sin(a) * 56}"/>`; }
+    g.innerHTML = `<svg viewBox="-60 -60 120 120" role="img" aria-label="${g.dataset.l} ${Math.round(v * 100)} percent"><circle class="trk" r="${r}"/><circle class="arc" r="${r}" transform="rotate(-90)" stroke-dasharray="${C * v} ${C}"/>${marks}<text x="0" y="6" text-anchor="middle"><tspan class="n">${Math.round(v * 100)}</tspan><tspan class="u" dx="2">%</tspan></text></svg><span class="label">${g.dataset.l}</span>`;
+    if (reduce || !animate) return;
+    $('.arc', g).animate([{ strokeDasharray: `0 ${C}` }, { strokeDasharray: `${C * v} ${C}` }], { duration: 900, easing: E.trace });
+    count($('.n', g), Math.round(v * 100), 0, 900);
+  }
+  $$('.gauge').forEach(g => drawGauge(g, false));
+
+  /* ---------- code copy ---------- */
+  $('#copy-code').addEventListener('click', async () => {
+    const txt = $$('#code-src .l').map(l => l.textContent).join('\n');
+    try { await navigator.clipboard.writeText(txt); toast('Copied', 'compose.yml · 8 lines'); }
+    catch (e) { const r = document.createRange(); r.selectNodeContents($('#code-src')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Selected', 'Press Ctrl C to copy'); }
+  });
+
+  /* ---------- live log ---------- */
+  const log = $('#log'); let logOn = true;
+  const LOGS = [['info', 'caddy', 'GET photos.astralabs.dev/api/assets 200 34ms'], ['info', 'jellyfin', 'Playback started: "Blade Runner 2049" on living-room-tv'], ['warn', 'immich', 'Machine learning queue at 412 jobs, slower than usual'], ['info', 'restic', 'snapshot progress 64% · 117 GB of 182 GB'], ['info', 'adguard', 'blocked 1,284 queries in the last hour'], ['err', 'home-assistant', 'container exited with code 137 (OOM killed)'], ['info', 'gitea', 'push emily/homelab-ops main 8dc01b2'], ['info', 'prometheus', 'scrape node-02:9100 ok 12ms'], ['warn', 'nextcloud', 'cron job took 41s, over the 30s budget'], ['info', 'wireguard', 'peer phone-emily handshake ok']];
+  let li = 0;
+  const addLog = (anim) => {
+    const [lv, svc, msg] = LOGS[li++ % LOGS.length], d = new Date(), el = document.createElement('div');
+    el.innerHTML = `<span class="t">${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}</span><span class="lv-${lv}">${lv.toUpperCase()}</span><span><span class="svc">${svc}</span> ${esc(msg)}</span>`;
+    if (anim && !reduce) el.className = 'new';
+    log.appendChild(el); while (log.children.length > 60) log.firstChild.remove(); log.scrollTop = log.scrollHeight;
+  };
+  for (let i = 0; i < 8; i++) addLog(false);
+  setInterval(() => { if (logOn) addLog(true); }, 1400);
+  $('#log-toggle').addEventListener('click', e => { logOn = !logOn; e.currentTarget.textContent = logOn ? 'Pause' : 'Resume'; });
+
+  /* ---------- alerts ---------- */
+  $$('.alert .x').forEach(x => x.addEventListener('click', () => { const a = x.closest('.alert'); if (reduce) return a.remove(); a.animate([{ clipPath: 'inset(0 0 0 0)' }, { clipPath: 'inset(0 0 0 100%)' }], { duration: 240, easing: E.trace, fill: 'forwards' }).finished.then(() => a.remove()); }));
+
+  /* ---------- loading: dotted skeleton, then decode ---------- */
+  const GL = '▲◆/\\|<>#01ΛΣΔ';
+  async function decode(el, text) {
+    if (reduce) { el.textContent = text; return; }
+    for (let f = 0; f < 28; f++) { el.textContent = [...text].map((c, i) => f > i * 1.1 + 4 || c === '.' ? c : GL[Math.floor(Math.random() * GL.length)]).join(''); await wait(28); }
+    el.textContent = text;
+  }
+  $('#reload').addEventListener('click', async () => { const sk = $('#skel'), dc = $('#decoding'); sk.hidden = false; dc.textContent = ''; await wait(1300); sk.hidden = true; decode(dc, 'photos.astralabs.dev'); });
+
+  /* ---------- modal ---------- */
+  const modal = $('#modal'), mIn = $('#m-confirm'), mGo = $('#m-go'); let lastFocus = null;
+  const openModal = () => { lastFocus = document.activeElement; modal.hidden = false; mIn.value = ''; mGo.disabled = true;  setTimeout(() => mIn.focus(), 30); };
+  const closeModal = () => { modal.hidden = true; lastFocus && lastFocus.focus(); };
+  document.addEventListener('click', e => { if (e.target.closest('[data-open-modal]')) openModal(); });
+  mIn.addEventListener('input', () => { mGo.disabled = mIn.value.trim() !== 'pool-a'; });
+  $('#m-cancel').addEventListener('click', closeModal);
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  mGo.addEventListener('click', () => { closeModal(); toast('Wipe cancelled', 'Demo only. pool-a is safe.'); });
+
+  /* ---------- tabs with sliding indicator ---------- */
+  const TP = ['immich on node-02 · 3 containers · up 6d 14h.', '22:14:08 INFO server listening on :2283 · 22:14:11 WARN ML queue 412 jobs', '/mnt/pool-a/photos → /usr/src/app/upload (1.21 TB) · pg-data (14 GB)', 'photos.astralabs.dev → 10.0.0.12:2283 via caddy · TLS by ACME'];
+  const tabs = $$('#tabs [role="tab"]'), ind = $('#tabs .ind');
+  const placeInd = i => { ind.style.width = tabs[i].offsetWidth + 'px'; ind.style.transform = `translateX(${tabs[i].offsetLeft}px)`; };
+  const selTab = i => { tabs.forEach((t, j) => { t.setAttribute('aria-selected', String(i === j)); t.tabIndex = i === j ? 0 : -1; }); const tp = $('#tp'); tp.textContent = TP[i]; tp.setAttribute('aria-labelledby', tabs[i].id); placeInd(i); };
+  tabs.forEach((t, i) => { t.addEventListener('click', () => selTab(i)); t.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = (i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length; selTab(n); tabs[n].focus(); } }); });
+  placeInd(0); addEventListener('resize', () => placeInd(tabs.findIndex(t => t.getAttribute('aria-selected') === 'true'))); document.fonts && document.fonts.ready.then(() => placeInd(0));
+
+  /* ---------- pager demo ---------- */
+  let pd = 3; const PDN = 12;
+  const renderPd = () => { const nums = [1, pd - 1, pd, pd + 1, PDN].filter((v, i, a) => v >= 1 && v <= PDN && a.indexOf(v) === i).sort((a, b) => a - b); let h = `<button type="button" data-p="${pd - 1}" aria-label="Previous page" ${pd === 1 ? 'disabled' : ''}>‹</button>`, prev = 0; nums.forEach(n => { if (n - prev > 1) h += '<button type="button" disabled>…</button>'; h += `<button type="button" data-p="${n}" ${n === pd ? 'aria-current="page"' : ''}>${n}</button>`; prev = n; }); h += `<button type="button" data-p="${pd + 1}" aria-label="Next page" ${pd === PDN ? 'disabled' : ''}>›</button>`; $('#pager-demo').innerHTML = h; };
+  $('#pager-demo').addEventListener('click', e => { const b = e.target.closest('button[data-p]'); if (b && !b.disabled) { pd = +b.dataset.p; renderPd(); } });
+  renderPd();
+
+  /* ---------- deploy pipeline ---------- */
+  const STEPS = [['Fetch', 'git pull 8dc01b2'], ['Build', 'compose config'], ['Pull', '14 images'], ['Roll out', 'node-01, node-02'], ['Verify', 'health checks']];
+  const renderSteps = (cur, done) => { $('#steps').innerHTML = STEPS.map(([h, s], i) => { const st = i < cur || done ? 'done' : i === cur ? 'run' : ''; return `<div class="step ${st}"><div class="ln"></div><span class="n">${st === 'done' ? 'DONE' : st === 'run' ? 'RUNNING' : 'QUEUED'}</span><h4>${h}</h4><span class="st">${s}</span></div>`; }).join(''); };
+  renderSteps(5, true);
+  $('#run-deploy').addEventListener('click', async e => {
+    const b = e.currentTarget; b.disabled = true;
+    for (let i = 0; i < STEPS.length; i++) { renderSteps(i, false); await wait(reduce ? 150 : 1100); }
+    renderSteps(5, true); b.disabled = false; toast('Deploy complete', 'homelab-ops@8dc01b2 · 14/14 healthy');
+  });
+
+  /* ---------- command palette ---------- */
+  const ACTIONS = [['Restart jellyfin', 'service'], ['Open Grafana', 'link'], ['SSH to node-02', 'host'], ['Snapshot pool-a', 'storage'], ['View immich logs', 'logs'], ['Run backup now', 'backup'], ['Toggle maintenance mode', 'system'], ['Rotate vault token', 'access'], ['Ping pi-03', 'host'], ['Open status page', 'link']];
+  function palette(root, floating) {
+    root.innerHTML = `<div class="q"><span class="wm" aria-hidden="true"><span class="br lb">[</span><span class="in">&gt;</span><span class="br rb">]</span></span><label class="sr" for="${root.id}-q">Search commands</label><input id="${root.id}-q" placeholder="Search services, hosts, actions" autocomplete="off" spellcheck="false"><span class="kbd">Esc</span></div><ul role="listbox" aria-label="Results"></ul><div class="foot label"><span>↑↓ move</span><span>Enter run</span><span>Esc close</span></div>`;
+    const q = $('input', root), ul = $('ul', root); let idx = 0, list = ACTIONS;
+    const draw = () => { ul.innerHTML = list.length ? list.map(([n, k], i) => `<li role="option" aria-selected="${i === idx}" data-i="${i}">${esc(n)}<i></i><small>${k}</small></li>`).join('') : '<li aria-disabled="true"><span class="dim">No matches</span></li>'; };
+    const go = i => { const a = list[i]; if (!a) return; toast(a[0], 'Demo action · nothing changed'); if (floating) closePalette(); };
+    q.addEventListener('input', () => { const v = q.value.toLowerCase(); list = ACTIONS.filter(([n, k]) => (n + ' ' + k).toLowerCase().includes(v)); idx = 0; draw(); });
+    q.addEventListener('keydown', e => { if (e.key === 'ArrowDown') { idx = Math.min(list.length - 1, idx + 1); draw(); e.preventDefault(); } else if (e.key === 'ArrowUp') { idx = Math.max(0, idx - 1); draw(); e.preventDefault(); } else if (e.key === 'Enter') go(idx); else if (e.key === 'Escape' && floating) closePalette(); });
+    ul.addEventListener('click', e => { const li = e.target.closest('li[data-i]'); if (li) go(+li.dataset.i); });
+    draw(); return q;
+  }
+  palette($('#cmdk-inline'), false);
+  const cm = $('#cmdk-modal'); let cmLast = null;
+  function openPalette() { cmLast = document.activeElement; cm.hidden = false; const q = palette($('#cmdk-float'), true);  setTimeout(() => q.focus(), 20); }
+  function closePalette() { cm.hidden = true; cmLast && cmLast.focus(); }
+  $('#open-cmdk').addEventListener('click', openPalette);
+  document.addEventListener('click', e => { if (e.target.closest('[data-open-cmdk]')) openPalette(); });
+  cm.addEventListener('click', e => { if (e.target === cm) closePalette(); });
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); cm.hidden ? openPalette() : closePalette(); }
+    if (e.key === 'Escape') { if (!modal.hidden) closeModal(); else if (!cm.hidden) closePalette(); }
+  });
+
+
+  /* ================= LIVE CHARTS (SVG) =================
+     Single series use brand Acid. Multi-series use the validated chart palette (dark band, CVD-checked):
+     s1 #70a600 · s2 #0486d3 · s3 #c13b9f · other #5a5452. Status colours only ever mean status. */
+  const CH = { surface: '#0a0909', acid: '#b6ff2e', s1: '#70a600', s2: '#0486d3', s3: '#c13b9f', other: '#5a5452', ok: '#4dff88', warn: '#ffa21f', down: '#ff2e3a', bone: '#ede6e1', ash: '#8e8380' };
+  const svgN = (tag, attrs = {}, parent) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (parent) parent.appendChild(n); return n; };
+  const niceStep = (max, n = 4) => { const raw = Math.max(max, 1e-6) / n, p = 10 ** Math.floor(Math.log10(raw)), f = raw / p; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p; };
+  const easeSettle = t => 1 - Math.pow(1 - t, 4);
+  const easeSnap = t => { const c = 1.25; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); };  // small overshoot, like Snap
+  const nf = (v, d = 0) => Number(v).toLocaleString('en-US', { maximumFractionDigits: d, minimumFractionDigits: d });
+  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  const chartReduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // one rAF loop for every live chart; charts off screen don't render
+  const LIVE = new Set(); let liveRAF = 0;
+  const liveIO = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.target._chart) e.target._chart.visible = e.isIntersecting; })) : null;
+  function liveLoop(now) { LIVE.forEach(c => { if (c.visible) c.render(now); }); liveRAF = requestAnimationFrame(liveLoop); }
+  function addLive(c) { LIVE.add(c); c.host._chart = c; c.visible = true; if (liveIO) liveIO.observe(c.host); if (!liveRAF) liveRAF = requestAnimationFrame(liveLoop); }
+
+  function tipFor(host) { let t = host.querySelector(':scope > .tt'); if (!t) { t = document.createElement('div'); t.className = 'tt'; t.hidden = true; host.appendChild(t); } return t; }
+  function showTip(tt, host, x, y, html) {
+    tt.innerHTML = html; tt.hidden = false;
+    const hw = host.clientWidth, tw = tt.offsetWidth, th = tt.offsetHeight;
+    tt.style.left = (x + 14 + tw > hw ? Math.max(0, x - tw - 14) : x + 14) + 'px';
+    tt.style.top = Math.max(0, y - th / 2) + 'px';
+  }
+
+  /* --- table view toggle: every chart can be read as a table --- */
+  function tableToggle(btn, wrap, getTable) {
+    btn.addEventListener('click', () => {
+      const on = btn.getAttribute('aria-pressed') !== 'true'; btn.setAttribute('aria-pressed', String(on));
+      const plot = wrap.querySelector('.chart'), tab = wrap.querySelector('.ch-table');
+      if (on) { const [head, rows] = getTable(); tab.innerHTML = `<table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`; }
+      plot.hidden = on; tab.hidden = !on;
+    });
+  }
+
+  /* --- LiveLine: time window scrolls at a constant rate; y-axis rescales on Settle; optional threshold events --- */
+  class LiveLine {
+    constructor(host, o) {
+      this.host = host;
+      this.o = Object.assign({ height: 200, windowS: 60, rate: 1000, unit: '', dec: 0, min: 0, fixedMax: null, thresh: null, threshLabel: '', area: true, L: 40, R: 74, T: 12, B: 24, label: 'Chart' }, o);
+      const now = performance.now();
+      this.series = o.series.map(s => { const d = []; let v = s.start; for (let i = this.o.windowS + 3; i >= 0; i--) { v = s.gen(v); d.push({ t: now - i * this.o.rate, v }); } return { ...s, data: d }; });
+      this.yMax = this.targetMax(); this.anim = null; this.paused = false; this.pauseT = 0; this.hx = null; this.flash = -1e9; this.events = []; this.lastNow = now;
+      this.svg = svgN('svg', { role: 'img', 'aria-label': this.o.label }, host);
+      const id = 'clip' + Math.random().toString(36).slice(2, 8);
+      this.clipR = svgN('rect', {}, svgN('clipPath', { id }, svgN('defs', {}, this.svg)));
+      this.gGrid = svgN('g', {}, this.svg); this.gThr = svgN('g', {}, this.svg);
+      this.gPlot = svgN('g', { 'clip-path': `url(#${id})` }, this.svg);
+      this.areaP = this.o.area && this.series.length === 1 ? svgN('path', { fill: hexA(this.series[0].color, .1) }, this.gPlot) : null;
+      this.lines = this.series.map(s => svgN('path', { class: 'ln', stroke: s.color }, this.gPlot));
+      this.gEvt = svgN('g', {}, this.gPlot);
+      this.gX = svgN('g', {}, this.svg); this.gEnd = svgN('g', {}, this.svg); this.gHover = svgN('g', {}, this.svg);
+      this.hit = svgN('rect', { class: 'hit' }, this.svg);
+      this.tt = tipFor(host);
+      this.hit.addEventListener('pointermove', e => { const r = this.svg.getBoundingClientRect(); this.hx = e.clientX - r.left; if (chartReduce || this.paused) this.render(performance.now()); });
+      this.hit.addEventListener('pointerleave', () => { this.hx = null; this.tt.hidden = true; if (chartReduce || this.paused) this.render(performance.now()); });
+      addLive(this);
+      this.timer = setInterval(() => this.push(), this.o.rate);
+      this.render(now);
+    }
+    targetMax() { if (this.o.fixedMax) return this.o.fixedMax; let m = 0; for (const s of this.series) for (const d of s.data) m = Math.max(m, d.v); m = Math.max(m * 1.12, this.o.thresh ? this.o.thresh * 1.1 : 0); const st = niceStep(m); return Math.ceil(m / st) * st; }
+    curMax(now) { if (!this.anim) return this.yMax; const p = chartReduce ? 1 : Math.min(1, (now - this.anim.t0) / 360), v = this.anim.from + (this.anim.to - this.anim.from) * easeSettle(p); if (p >= 1) { this.yMax = this.anim.to; this.anim = null; } return v; }
+    setPaused(p) { this.paused = p; if (p) this.pauseT = this.lastNow; else { const dt = performance.now() - this.pauseT; this.series.forEach(s => s.data.forEach(d => d.t += dt)); this.events.forEach(e => e.t += dt); } }
+    push() {
+      if (this.paused) return;
+      const now = performance.now(), cap = this.o.windowS * 1000 / this.o.rate + 5;
+      for (const s of this.series) { s.data.push({ t: now, v: s.gen(s.data[s.data.length - 1].v) }); while (s.data.length > cap) s.data.shift(); }
+      const tm = this.targetMax(), cur = this.anim ? this.anim.to : this.yMax;
+      if (tm !== cur) this.anim = { from: this.curMax(now), to: tm, t0: now };
+      if (this.o.thresh != null) {
+        const d = this.series[0].data, a = d[d.length - 2].v, b = d[d.length - 1].v;
+        if (a < this.o.thresh && b >= this.o.thresh) { this.flash = now; this.events.push({ t: now - this.o.rate * (b - this.o.thresh) / Math.max(1e-6, b - a) }); if (this.onCross) this.onCross(b); }
+      }
+      this.events = this.events.filter(e => now - e.t < this.o.windowS * 1000 + 2000);
+      if (chartReduce) this.render(now);
+    }
+    valAt(s, t) { const d = s.data; for (let i = d.length - 1; i > 0; i--) if (d[i - 1].t <= t) { const a = d[i - 1], b = d[i], k = Math.min(1, Math.max(0, (t - a.t) / (b.t - a.t))); return a.v + (b.v - a.v) * k; } return d[0].v; }
+    render(now) {
+      this.lastNow = now;
+      const o = this.o, W = Math.max(200, this.host.clientWidth), H = o.height, L = o.L, R = o.R, T = o.T, B = o.B, pw = W - L - R, ph = H - T - B, span = o.windowS * 1000;
+      this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`); this.svg.setAttribute('height', H);
+      // the right edge shows "one sample ago", so the newest point slides in from off-plot instead of popping in
+      const tRef = this.paused ? this.pauseT - o.rate : (chartReduce ? this.series[0].data[this.series[0].data.length - 1].t : now - o.rate);
+      const yMax = this.curMax(now), yTo = this.anim ? this.anim.to : yMax, x = t => L + pw - (tRef - t) / span * pw, y = v => T + ph - (v - o.min) / (yMax - o.min) * ph;
+      this.clipR.setAttribute('x', L); this.clipR.setAttribute('y', T - 6); this.clipR.setAttribute('width', pw); this.clipR.setAttribute('height', ph + 12);
+      // grid + y ticks (ticks come from the target scale and slide while it settles)
+      const st = niceStep(yTo - o.min); let g = '';
+      for (let v = o.min; v <= yTo + 1e-9; v += st) { const yy = Math.round(y(v)) + .5; if (yy < T - 2) continue; g += `<line class="${v === o.min ? 'base' : 'gl'}" x1="${L}" x2="${L + pw}" y1="${yy}" y2="${yy}"/><text class="tick" x="${L - 8}" y="${yy + 3}" text-anchor="end">${nf(v, st < 1 ? 1 : 0)}</text>`; }
+      this.gGrid.innerHTML = g;
+      // x axis: fixed relative-time ticks; the data scrolls past them
+      let xs = ''; const step = o.windowS >= 60 ? 15 : o.windowS >= 30 ? 10 : 5;
+      for (let s = 0; s <= o.windowS; s += step) { const xx = Math.round(L + pw - s / o.windowS * pw) + .5; xs += `<line class="base" x1="${xx}" x2="${xx}" y1="${T + ph}" y2="${T + ph + 4}"/><text class="tick" x="${xx}" y="${T + ph + 15}" text-anchor="${s === 0 ? 'end' : 'middle'}">${s === 0 ? 'now' : '−' + s + 's'}</text>`; }
+      this.gX.innerHTML = xs;
+      // lines + area
+      this.series.forEach((s, i) => { const pts = s.data.filter(d => x(d.t) > L - 40).map(d => `${x(d.t).toFixed(1)},${y(d.v).toFixed(1)}`); this.lines[i].setAttribute('d', 'M' + pts.join(' L')); if (i === 0 && this.areaP) this.areaP.setAttribute('d', `M${pts.join(' L')} L${x(s.data[s.data.length - 1].t).toFixed(1)},${T + ph} L${L - 40},${T + ph} Z`); });
+      // threshold: dashed by convention; it strobes once when crossed
+      if (o.thresh != null) {
+        const ty = Math.round(y(o.thresh)) + .5, age = now - this.flash;
+        const lit = age < 340 ? [1, 0, 1, .35, 1][Math.min(4, Math.floor(age / 68))] : null;
+        this.gThr.innerHTML = `<line class="thr" x1="${L}" x2="${L + pw}" y1="${ty}" y2="${ty}" ${lit != null ? `style="opacity:${lit};stroke:${CH.warn}"` : ''}/><text class="thr-l" x="${L + 6}" y="${ty - 5}">${o.threshLabel || nf(o.thresh) + o.unit}</text>`;
+        this.gEvt.innerHTML = this.events.map(e => { const ex = Math.round(x(e.t)) + .5; return `<line class="evt" x1="${ex}" x2="${ex}" y1="${T + ph - 7}" y2="${T + ph}"/><path d="M${ex - 3} ${T + ph - 10} h6 l-3 4 z" fill="${CH.warn}"/>`; }).join('');
+      }
+      // end markers + direct end labels
+      let ends = ''; const ev = this.series.map(s => this.valAt(s, tRef));
+      const ly = ev.map(v => y(v)); if (ly.length === 2 && Math.abs(ly[0] - ly[1]) < 14) { const m = (ly[0] + ly[1]) / 2, up = ly[0] < ly[1] ? 0 : 1; ly[up] = m - 7; ly[1 - up] = m + 7; }
+      this.series.forEach((s, i) => { const above = o.thresh != null && i === 0 && ev[i] >= o.thresh; ends += `<circle cx="${L + pw}" cy="${y(ev[i]).toFixed(1)}" r="4" fill="${above ? CH.warn : s.color}" stroke="${CH.surface}" stroke-width="2"/><text class="endv" x="${L + pw + 10}" y="${(ly[i] + 4).toFixed(1)}">${this.series.length > 1 ? `<tspan class="u">${s.name} </tspan>` : ''}${nf(ev[i], o.dec)}<tspan class="u"> ${o.unit}</tspan></text>`; });
+      this.gEnd.innerHTML = ends;
+      this.hit.setAttribute('x', L); this.hit.setAttribute('y', T); this.hit.setAttribute('width', pw); this.hit.setAttribute('height', ph);
+      // hover: crosshair snaps to the nearest sample
+      if (this.hx != null && this.hx >= L && this.hx <= L + pw) {
+        const tq = tRef - (L + pw - this.hx) / pw * span, d0 = this.series[0].data; let k = 0, best = 1e18; d0.forEach((d, i) => { const dd = Math.abs(d.t - tq); if (dd < best) { best = dd; k = i; } });
+        const tx = x(d0[k].t); let hv = `<line class="xh" x1="${Math.round(tx) + .5}" x2="${Math.round(tx) + .5}" y1="${T}" y2="${T + ph}"/>`;
+        this.series.forEach(s => { hv += `<circle cx="${tx}" cy="${y(s.data[k].v)}" r="4" fill="${s.color}" stroke="${CH.surface}" stroke-width="2"/>`; });
+        this.gHover.innerHTML = hv;
+        const ago = Math.max(0, Math.round((tRef - d0[k].t) / 1000));
+        showTip(this.tt, this.host, tx, y(this.series[0].data[k].v), `<span class="h">${ago === 0 ? 'now' : ago + 's ago'}</span>` + this.series.map(s => `<span class="r"><span><i style="background:${s.color}"></i>${s.name}</span><b>${nf(s.data[k].v, o.dec)} ${o.unit}</b></span>`).join(''));
+      } else this.gHover.innerHTML = '';
+    }
+    table() { const d0 = this.series[0].data.slice(-20).reverse(); return [['Time', ...this.series.map(s => `${s.name} (${this.o.unit})`)], d0.map((d, i) => { const k = this.series[0].data.length - 1 - i; const ago = Math.round((this.series[0].data[this.series[0].data.length - 1].t - d.t) / 1000); return [ago === 0 ? 'now' : `−${ago}s`, ...this.series.map(s => nf(s.data[k].v, this.o.dec))]; })]; }
+  }
+
+  /* --- LiveColumns: rolling columns slide left at a constant rate; each new column grows on Snap --- */
+  class LiveColumns {
+    constructor(host, o) {
+      this.host = host;
+      this.o = Object.assign({ height: 200, n: 30, rate: 1000, unit: '', color: CH.acid, L: 40, R: 16, T: 18, B: 24, label: 'Chart' }, o);
+      const now = performance.now(); let v = o.start; this.data = [];
+      for (let i = this.o.n + 1; i >= 0; i--) { v = o.gen(v); this.data.push({ t: now - i * this.o.rate, v }); }
+      this.yMax = this.targetMax(); this.anim = null; this.paused = false; this.hi = null;
+      this.svg = svgN('svg', { role: 'img', 'aria-label': this.o.label }, host);
+      this.gGrid = svgN('g', {}, this.svg); this.gBars = svgN('g', {}, this.svg); this.gX = svgN('g', {}, this.svg); this.gLab = svgN('g', {}, this.svg);
+      this.tt = tipFor(host);
+      this.svg.addEventListener('pointermove', e => { const r = this.svg.getBoundingClientRect(); this.px = e.clientX - r.left; });
+      this.svg.addEventListener('pointerleave', () => { this.px = null; this.tt.hidden = true; });
+      addLive(this); this.timer = setInterval(() => this.push(), this.o.rate); this.render(now);
+    }
+    targetMax() { let m = 0; for (const d of this.data) m = Math.max(m, d.v); m *= 1.15; const st = niceStep(m); return Math.ceil(m / st) * st; }
+    curMax(now) { if (!this.anim) return this.yMax; const p = chartReduce ? 1 : Math.min(1, (now - this.anim.t0) / 360), v = this.anim.from + (this.anim.to - this.anim.from) * easeSettle(p); if (p >= 1) { this.yMax = this.anim.to; this.anim = null; } return v; }
+    setPaused(p) { this.paused = p; if (!p) { const dt = performance.now() - this.pauseT; this.data.forEach(d => d.t += dt); } else this.pauseT = this.lastNow; }
+    push() { if (this.paused) return; const now = performance.now(); this.data.push({ t: now, v: this.o.gen(this.data[this.data.length - 1].v) }); while (this.data.length > this.o.n + 3) this.data.shift(); const tm = this.targetMax(); if (tm !== (this.anim ? this.anim.to : this.yMax)) this.anim = { from: this.curMax(now), to: tm, t0: now }; if (chartReduce) this.render(now); }
+    render(now) {
+      this.lastNow = now;
+      const o = this.o, W = Math.max(200, this.host.clientWidth), H = o.height, L = o.L, R = o.R, T = o.T, B = o.B, pw = W - L - R, ph = H - T - B;
+      this.svg.setAttribute('viewBox', `0 0 ${W} ${H}`); this.svg.setAttribute('height', H);
+      const slot = pw / o.n, bw = Math.min(24, slot - 4), tRef = this.paused ? this.pauseT : now, last = this.data[this.data.length - 1];
+      const shift = chartReduce ? 0 : Math.min(1, (tRef - last.t) / o.rate);  // 0 → 1 across one interval
+      const yMax = this.curMax(now), yTo = this.anim ? this.anim.to : yMax, y = v => T + ph - v / yMax * ph;
+      const stp = niceStep(yTo); let g = '';
+      for (let v = 0; v <= yTo + 1e-9; v += stp) { const yy = Math.round(y(v)) + .5; g += `<line class="${v === 0 ? 'base' : 'gl'}" x1="${L}" x2="${L + pw}" y1="${yy}" y2="${yy}"/><text class="tick" x="${L - 8}" y="${yy + 3}" text-anchor="end">${nf(v)}</text>`; }
+      this.gGrid.innerHTML = g;
+      let b = '', peak = null; const n = this.data.length, base = T + ph;
+      this.data.forEach((d, i) => {
+        const idx = n - 1 - i, cx = L + pw - (idx + 1 - shift) * slot + (slot - bw) / 2; if (cx < L - 1 || cx + bw > L + pw + 1) return;
+        const grow = idx === 0 && !chartReduce ? easeSnap(Math.min(1, (tRef - d.t) / 200)) : 1, h = Math.max(0, (base - y(d.v)) * grow), r = Math.min(4, h, bw / 2), top = base - h;
+        const hov = this.px != null && this.px >= cx - 2 && this.px <= cx + bw + 2;
+        b += `<path class="mk-bar${hov ? ' on' : ''}" d="M${cx} ${base} V${top + r} Q${cx} ${top} ${cx + r} ${top} H${cx + bw - r} Q${cx + bw} ${top} ${cx + bw} ${top + r} V${base} Z" fill="${o.color}"/>`;
+        if (!peak || d.v > peak.v) peak = { v: d.v, x: cx + bw / 2, y: top };
+        if (hov) showTip(this.tt, this.host, cx + bw / 2, top, `<span class="h">${idx === 0 ? 'now' : idx + 's ago'}</span><span class="r"><span>${o.series || 'value'}</span><b>${nf(d.v)} ${o.unit}</b></span>`);
+      });
+      this.gBars.innerHTML = b;
+      this.gLab.innerHTML = peak ? `<text class="endv" x="${peak.x}" y="${peak.y - 6}" text-anchor="middle">${nf(peak.v)}</text>` : '';
+      let xs = ''; for (const s of [0, 10, 20, 30]) { if (s > o.n) continue; const xx = Math.round(L + pw - s / o.n * pw) + .5; xs += `<text class="tick" x="${xx}" y="${base + 15}" text-anchor="${s === 0 ? 'end' : 'middle'}">${s === 0 ? 'now' : '−' + s + 's'}</text>`; }
+      this.gX.innerHTML = xs;
+    }
+    table() { return [['Time', `${this.o.series || 'Value'} (${this.o.unit})`], this.data.slice().reverse().map((d, i) => [i === 0 ? 'now' : `−${i}s`, nf(d.v)])]; }
+  }
+
+  /* --- static: horizontal bars (4px rounded data-end, square at the baseline, ≤24px thick) --- */
+  function barsChart(host, rows, o = {}) {
+    const W = Math.max(240, host.clientWidth), bh = 14, gap = 16, L = o.L || 78, R = 64, T = 4, H = T + rows.length * (bh + gap) + 18;
+    const max = o.max || Math.max(...rows.map(r => r.v)), pw = W - L - R, x = v => L + v / max * pw;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${o.label || ''}">`;
+    rows.forEach((r, i) => {
+      const yy = T + i * (bh + gap), x1 = x(r.v), rr = Math.min(4, x1 - L);
+      s += `<text class="tick" x="${L - 10}" y="${yy + bh / 2 + 3}" text-anchor="end">${r.k}</text><rect x="${L}" y="${yy}" width="${pw}" height="${bh}" fill="${hexA(CH.bone, .04)}"/>`;
+      s += `<path class="mk-bar" data-i="${i}" d="M${L} ${yy} H${x1 - rr} Q${x1} ${yy} ${x1} ${yy + rr} V${yy + bh - rr} Q${x1} ${yy + bh} ${x1 - rr} ${yy + bh} H${L} Z" fill="${r.c || CH.acid}"/>`;
+      s += `<text class="endv" x="${x1 + 8}" y="${yy + bh / 2 + 4}">${nf(r.v, o.dec || 0)}<tspan class="u"> ${o.unit || ''}</tspan></text>`;
+    });
+    if (o.thresh != null) { const tx = Math.round(x(o.thresh)) + .5; s += `<line class="thr" x1="${tx}" x2="${tx}" y1="${T - 2}" y2="${H - 16}"/><text class="thr-l" x="${tx}" y="${H - 4}" text-anchor="middle">${o.threshLabel}</text>`; }
+    host.innerHTML = s + '</svg>';
+    const tt = tipFor(host);
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', e => { const r = rows[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x + bb.width, bb.y + bh / 2, `<span class="h">${r.k}</span><span class="r"><span>${o.series || 'value'}</span><b>${nf(r.v, o.dec || 0)} ${o.unit || ''}</b></span>${r.note ? `<span class="r"><span>${r.note}</span></span>` : ''}`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- static: one stacked bar with 2px surface gaps between segments --- */
+  function stackChart(host, segs, o = {}) {
+    const W = Math.max(240, host.clientWidth), H = 40, total = segs.reduce((a, s) => a + s.v, 0), gapPx = 2;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${o.label || ''}">`, x0 = 0;
+    const usable = W - gapPx * (segs.length - 1);
+    segs.forEach((g, i) => { const w = g.v / total * usable, last = i === segs.length - 1, r = last ? 4 : 0; s += `<path class="mk-bar" data-i="${i}" d="M${x0} 8 H${x0 + w - r} ${r ? `Q${x0 + w} 8 ${x0 + w} ${8 + r} V${32 - r} Q${x0 + w} 32 ${x0 + w - r} 32` : `V32`} H${x0} Z" fill="${g.c}"/>`; x0 += w + gapPx; });
+    host.innerHTML = s + '</svg>';
+    const tt = tipFor(host);
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', () => { const g = segs[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x + bb.width / 2, 4, `<span class="h">${g.k}</span><span class="r"><span>${o.series || 'value'}</span><b>${nf(g.v, 1)} ${o.unit || ''} · ${Math.round(g.v / total * 100)}%</b></span>`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- static: histogram with p50 / p95 line markers --- */
+  function histChart(host, bins, o = {}) {
+    const W = Math.max(240, host.clientWidth), H = o.height || 170, L = 40, R = 12, T = 22, B = 24, pw = W - L - R, ph = H - T - B, n = bins.length, slot = pw / n, bw = Math.min(24, slot - 2);
+    const max = Math.max(...bins.map(b => b.c)), st = niceStep(max), top = Math.ceil(max / st) * st, y = v => T + ph - v / top * ph;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${o.label || ''}">`;
+    for (let v = 0; v <= top; v += st) { const yy = Math.round(y(v)) + .5; s += `<line class="${v ? 'gl' : 'base'}" x1="${L}" x2="${L + pw}" y1="${yy}" y2="${yy}"/><text class="tick" x="${L - 8}" y="${yy + 3}" text-anchor="end">${nf(v)}</text>`; }
+    bins.forEach((b, i) => { const x0 = L + i * slot + (slot - bw) / 2, tp = y(b.c), r = Math.min(4, T + ph - tp, bw / 2); s += `<path class="mk-bar" data-i="${i}" d="M${x0} ${T + ph} V${tp + r} Q${x0} ${tp} ${x0 + r} ${tp} H${x0 + bw - r} Q${x0 + bw} ${tp} ${x0 + bw} ${tp + r} V${T + ph} Z" fill="${CH.acid}"/>`; if (i % 2 === 0) s += `<text class="tick" x="${x0 + bw / 2}" y="${T + ph + 15}" text-anchor="middle">${b.lo}</text>`; });
+    (o.marks || []).forEach(m => { const mx = Math.round(L + (m.at / bins.length) * pw) + .5; s += `<line class="thr" x1="${mx}" x2="${mx}" y1="${T - 6}" y2="${T + ph}"/><text class="thr-l" x="${mx + 4}" y="${T - 10}">${m.k} ${m.v}</text>`; });
+    host.innerHTML = s + '</svg>';
+    const tt = tipFor(host);
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', () => { const b = bins[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x + bb.width, bb.y, `<span class="h">${b.lo}–${b.hi} ms</span><span class="r"><span>requests</span><b>${nf(b.c)}</b></span>`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- static: 90-day status strip (status colours carry a shape in the legend and a word in the tooltip) --- */
+  function uptimeChart(host, days) {
+    const W = Math.max(240, host.clientWidth), H = 46, n = days.length, gap = 2, bw = (W - gap * (n - 1)) / n;
+    let s = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="90 day uptime">`;
+    days.forEach((d, i) => { const x0 = i * (bw + gap), c = d.s === 'ok' ? CH.ok : d.s === 'warn' ? CH.warn : CH.down, h = d.s === 'ok' ? 28 : 34; s += `<rect class="mk-bar" data-i="${i}" x="${x0.toFixed(2)}" y="${34 - h}" width="${bw.toFixed(2)}" height="${h}" fill="${c}" ${d.s === 'ok' ? 'opacity=".55"' : ''}/>`; });
+    s += `<text class="tick" x="0" y="${H - 1}">90 days ago</text><text class="tick" x="${W}" y="${H - 1}" text-anchor="end">today</text></svg>`;
+    host.innerHTML = s;
+    const tt = tipFor(host), W2 = { ok: 'Operational', warn: 'Degraded', down: 'Outage' };
+    host.querySelectorAll('.mk-bar').forEach(p => { p.addEventListener('pointerenter', () => { const d = days[+p.dataset.i], bb = p.getBBox(); showTip(tt, host, bb.x, 0, `<span class="h">${d.date}</span><span class="r"><span>${W2[d.s]}</span><b>${d.up}%</b></span>${d.note ? `<span class="r"><span>${d.note}</span></span>` : ''}`); }); p.addEventListener('pointerleave', () => tt.hidden = true); });
+  }
+
+  /* --- generators for example data --- */
+  const walk = (lo, hi, vol) => v => Math.min(hi, Math.max(lo, v + (Math.random() - .5) * vol + (((lo + hi) / 2) - v) * .04));
+  const bursty = (base, vol, p, amp) => v => Math.max(1, base + (Math.random() - .5) * vol + (Math.random() < p ? amp * (.5 + Math.random()) : 0) + (v - base) * .35);
+
+  /* ---------- graphs: example data ---------- */
+  const cpuGen = v => { let n = v + (Math.random() - .5) * 12 + (48 - v) * .14; if (Math.random() < .035) n += 30 + Math.random() * 12; return Math.min(99, Math.max(4, n)); };
+  const charts = {
+    cpu: new LiveLine($('#c-cpu'), { label: 'CPU on node-02, last 60 seconds', series: [{ name: 'cpu', color: CH.acid, start: 48, gen: cpuGen }], unit: '%', fixedMax: 100, thresh: 85, threshLabel: '85% alert', height: 220 }),
+    rps: new LiveColumns($('#c-rps'), { label: 'Requests per second, last 30 seconds', series: 'requests', unit: 'req/s', n: 30, start: 140, gen: bursty(130, 50, .08, 170), height: 220 }),
+    net: new LiveLine($('#c-net'), { label: 'Network throughput on wg0, received and sent', series: [{ name: 'rx', color: CH.s1, start: 220, gen: bursty(240, 70, .06, 420) }, { name: 'tx', color: CH.s2, start: 60, gen: bursty(70, 30, .04, 160) }], unit: 'Mb/s', area: false, height: 200 }),
+  };
+  barsChart($('#c-store'), [{ k: 'photos', v: 1.21, note: 'immich uploads' }, { k: 'media', v: .94 }, { k: 'backups', v: .38 }, { k: 'nextcloud', v: .12 }, { k: 'vm-images', v: .07 }], { unit: 'TB', dec: 2, series: 'used', label: 'Storage used by dataset on pool-a' });
+  const MEM = [{ k: 'immich', v: 3.8, c: CH.s1 }, { k: 'jellyfin', v: 2.2, c: CH.s2 }, { k: 'nextcloud', v: 1.4, c: CH.s3 }, { k: 'other', v: 2.4, c: CH.other }];
+  stackChart($('#c-mem'), MEM, { unit: 'GB', series: 'memory', label: 'Memory by service on node-02' });
+  const LAT = [[0, 10, 820], [10, 20, 1460], [20, 40, 610], [40, 60, 240], [60, 80, 120], [80, 100, 70], [100, 150, 54], [150, 200, 22], [200, 300, 11], [300, 500, 5]].map(([lo, hi, c]) => ({ lo, hi, c }));
+  histChart($('#c-lat'), LAT, { label: 'Latency distribution for caddy, last hour', marks: [{ k: 'p50', v: '18ms', at: 1.8 }, { k: 'p95', v: '124ms', at: 6.5 }] });
+  const UP = Array.from({ length: 90 }, (_, i) => { const d = new Date(2026, 9, 17 - (89 - i)); const s = i === 61 ? 'down' : [23, 47, 80].includes(i) ? 'warn' : 'ok'; return { date: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }), s, up: s === 'down' ? '96.10' : s === 'warn' ? '99.40' : '100.00', note: s === 'down' ? 'host rebooted, 56 min' : s === 'warn' ? 'slow responses' : '' }; });
+  uptimeChart($('#c-up'), UP);
+  const TABLES = {
+    cpu: () => charts.cpu.table(), rps: () => charts.rps.table(), net: () => charts.net.table(),
+    store: () => [['Dataset', 'Used (TB)'], [['photos', '1.21'], ['media', '0.94'], ['backups', '0.38'], ['nextcloud', '0.12'], ['vm-images', '0.07']]],
+    mem: () => [['Service', 'Memory (GB)', 'Share'], MEM.map(m => [m.k, nf(m.v, 1), Math.round(m.v / 9.8 * 100) + '%'])],
+    lat: () => [['Latency (ms)', 'Requests'], LAT.map(b => [`${b.lo}–${b.hi}`, nf(b.c)])],
+    up: () => [['Day', 'Status', 'Uptime'], UP.slice().reverse().map(d => [d.date, { ok: 'Operational', warn: 'Degraded', down: 'Outage' }[d.s], d.up + '%'])],
+  };
+  $$('.chart-card').forEach(card => {
+    const id = card.dataset.chart, pb = $('[data-pause]', card), live = $('.ch-live', card);
+    tableToggle($('[data-table]', card), card, TABLES[id]);
+    if (pb) pb.addEventListener('click', () => { const c = charts[id], p = !c.paused; c.setPaused(p); pb.textContent = p ? 'Resume' : 'Pause'; live.classList.toggle('paused', p); live.textContent = p ? 'Paused' : 'Live · 1s'; });
+  });
+  addEventListener('resize', () => { barsChart($('#c-store'), [{ k: 'photos', v: 1.21, note: 'immich uploads' }, { k: 'media', v: .94 }, { k: 'backups', v: .38 }, { k: 'nextcloud', v: .12 }, { k: 'vm-images', v: .07 }], { unit: 'TB', dec: 2, series: 'used', label: 'Storage used by dataset on pool-a' }); stackChart($('#c-mem'), MEM, { unit: 'GB', series: 'memory' }); histChart($('#c-lat'), LAT, { marks: [{ k: 'p50', v: '18ms', at: 1.8 }, { k: 'p95', v: '124ms', at: 6.5 }] }); uptimeChart($('#c-up'), UP); });
+
+  /* ---------- maintenance page ---------- */
+  if (!reduce) spinner($('#mt-sl'));
+  let eta = 359; setInterval(() => { eta = eta > 0 ? eta - 1 : 359; $('#eta').textContent = `${pad(Math.floor(eta / 60))}:${pad(eta % 60)}`; }, 1000);
+})();
+</script>
