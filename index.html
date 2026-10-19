@@ -70,13 +70,15 @@
     }
 
     /* Dot field: ignition on load, then the Sea idle field */
-    #field {
+    #field, #field-gpu, #scope {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
       display: block;
     }
+    /* Oscilloscope beam: drawn over the field, under the lockup */
+    #scope { pointer-events: none; }
 
     main {
       position: relative;
@@ -188,6 +190,7 @@
 </head>
 <body>
   <canvas id="field" aria-hidden="true"></canvas>
+  <canvas id="scope" aria-hidden="true"></canvas>
 
   <span class="reg reg-tl" aria-hidden="true"></span>
   <span class="reg reg-br" aria-hidden="true"></span>
@@ -248,7 +251,7 @@
     const origin = () => [W / 2, H / 2];
     const reach = (cx, cy) => Math.max(Math.hypot(cx, cy), Math.hypot(W - cx, cy), Math.hypot(cx, H - cy), Math.hypot(W - cx, H - cy));
 
-    function drawIgnition(p) {
+    function drawIgnition2D(p) {
       fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
       const [cx, cy] = origin(), max = reach(cx, cy), R = max * p;
       for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
@@ -270,23 +273,167 @@
     // Pointer lens: dots near the mouse lift a little brighter and larger. It trails the pointer and fades in and out.
     const LENS_R = 84, lens = { x: 0, y: 0, tx: 0, ty: 0, k: 0, on: false };
 
-    function drawSea(now) {
+    // The grid is fixed, so everything per dot that doesn't change frame to frame is worked out once per resize:
+    // position, resting gray, and each wave's phase (as sin/cos, so a frame only needs one sin/cos per wave).
+    let grid = null;
+    function buildGrid() {
+      const xs = [], ys = [];
+      for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) { xs.push(gx); ys.push(gy); }
+      const n = xs.length, [cx, cy] = origin(), max = reach(cx, cy);
+      const g = { n, x: Float32Array.from(xs), y: Float32Array.from(ys), rest: new Float32Array(n), sa: new Float32Array(n * 4), ca: new Float32Array(n * 4) };
+      for (let i = 0; i < n; i++) {
+        g.rest[i] = .12 + Math.max(0, 1 - Math.hypot(xs[i] - cx, ys[i] - cy) / max) * .2;
+        SEA.forEach((w, j) => { const ph = xs[i] * w.kx + ys[i] * w.ky + w.p; g.sa[i * 4 + j] = Math.sin(ph); g.ca[i * 4 + j] = Math.cos(ph); });
+      }
+      grid = g;
+    }
+
+    // Dots are drawn grouped by brightness, so the canvas changes fill color a few dozen times per frame, not once per dot.
+    const LEVELS = 120, boneB = Array.from({ length: LEVELS + 1 }, () => []), acidB = Array.from({ length: LEVELS + 1 }, () => []);
+    const boneStyle = boneB.map((_, i) => `rgba(237,230,225,${(i / LEVELS).toFixed(3)})`), acidStyle = acidB.map((_, i) => `rgba(182,255,46,${(i / LEVELS).toFixed(3)})`);
+    function drawSea2D(now) {
+      if (!grid) buildGrid();
       const t = (now - sea.t0) / 1000, amp = .14 * sea.ramp;
-      fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
-      const [cx, cy] = origin(), max = reach(cx, cy);
-      for (let i = pulses.length - 1; i >= 0; i--) { const p = pulses[i], q = (now - p.t0) / PULSE_DUR; if (q >= 1) pulses.splice(i, 1); else p.r = p.max * easeIO(Math.max(0, q)); }
-      const lk = lens.k;
-      for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) {
+      const sb = SEA.map(w => Math.sin(t * w.w) * w.a), cb = SEA.map(w => Math.cos(t * w.w) * w.a);
+      const lk = lens.k > .01 ? lens.k : 0, lx = lens.x, ly = lens.y, LR2 = LENS_R * LENS_R;
+      const { n, x, y, rest, sa, ca } = grid;
+      for (const b of boneB) b.length = 0;
+      for (const b of acidB) b.length = 0;
+      for (let i = 0; i < n; i++) {
+        const gx = x[i], gy = y[i];
         let ring = 0;
-        for (const p of pulses) ring = Math.max(ring, 1 - Math.abs(Math.hypot(gx - p.x, gy - p.y) - p.r) / 22);
-        if (ring > .05) { fx.fillStyle = `rgba(182,255,46,${(.3 + ring * .7).toFixed(3)})`; fx.fillRect(gx - .75, gy - .75, 1.5, 1.5); continue; }
-        let h = 0; for (const w of SEA) h += w.a * Math.sin(gx * w.kx + gy * w.ky - t * w.w + w.p);
-        let a = .12 + Math.max(0, 1 - Math.hypot(gx - cx, gy - cy) / max) * .2 + h * amp, sz = 1.5;
-        if (lk > .01) { const d = Math.hypot(gx - lens.x, gy - lens.y); if (d < LENS_R) { const f = 1 - d / LENS_R, ff = f * f * (3 - 2 * f) * lk; a += ff * .16; sz += ff * .45; } }
-        fx.fillStyle = `rgba(237,230,225,${Math.max(.04, a).toFixed(3)})`;
-        fx.fillRect(gx - sz / 2, gy - sz / 2, sz, sz);
+        for (const p of pulses) { const r = 1 - Math.abs(Math.hypot(gx - p.x, gy - p.y) - p.r) / 22; if (r > ring) ring = r; }
+        if (ring > .05) { acidB[Math.round((.3 + ring * .7) * LEVELS)].push(i, 15); continue; }
+        // sin(phase - t·w) expanded: sinA·cosB − cosA·sinB
+        const k = i * 4;
+        const h = sa[k] * cb[0] - ca[k] * sb[0] + sa[k + 1] * cb[1] - ca[k + 1] * sb[1] + sa[k + 2] * cb[2] - ca[k + 2] * sb[2] + sa[k + 3] * cb[3] - ca[k + 3] * sb[3];
+        let a = rest[i] + h * amp, sz = 15;                                      // size in tenths of a px
+        if (lk) { const dx = gx - lx, dy = gy - ly, d2 = dx * dx + dy * dy; if (d2 < LR2) { const f = 1 - Math.sqrt(d2) / LENS_R, ff = f * f * (3 - 2 * f) * lk; a += ff * .16; sz = Math.round(15 + ff * 4.5); } }
+        boneB[Math.min(LEVELS, Math.round(Math.max(.04, a) * LEVELS))].push(i, sz);
+      }
+      fx.setTransform(dpr, 0, 0, dpr, 0, 0); fx.clearRect(0, 0, W, H);
+      const paint = (buckets, styles) => buckets.forEach((b, lv) => {
+        if (!b.length) return;
+        fx.fillStyle = styles[lv];
+        for (let j = 0; j < b.length; j += 2) { const i = b[j], sz = b[j + 1] / 10; fx.fillRect(x[i] - sz / 2, y[i] - sz / 2, sz, sz); }
+      });
+      paint(boneB, boneStyle); paint(acidB, acidStyle);
+    }
+    /* ---------- renderer ----------
+       WebGPU draws the field when the browser has it: one instanced quad per dot, with every dot's brightness worked
+       out on the GPU from a handful of uniforms, so rings and the lens cost nothing extra. Each quad shades only the
+       part of its pixels the dot square covers, which matches the canvas renderer's antialiasing. Without WebGPU,
+       or if the device is lost, the canvas renderer above draws the same field. */
+    let gpu = null, lastP = .0001;
+    function stepPulses(now) {
+      for (let i = pulses.length - 1; i >= 0; i--) { const p = pulses[i], q = (now - p.t0) / PULSE_DUR; if (q >= 1) pulses.splice(i, 1); else p.r = p.max * easeIO(Math.max(0, q)); }
+    }
+    function drawIgnition(p) { lastP = p; if (gpu) gpu.draw(p, performance.now()); else drawIgnition2D(p); }
+    function drawSea(now) { lastP = 1; stepPulses(now); if (gpu) gpu.draw(1, now); else drawSea2D(now); }
+
+    const FIELD_WGSL = `
+      struct U { res: vec2f, dpr: f32, p: f32, center: vec2f, maxR: f32, pad: f32,
+                 kx: vec4f, ky: vec4f, wp: vec4f, wa: vec4f, lens: vec4f, pulses: array<vec4f, 4> };
+      @group(0) @binding(0) var<uniform> u: U;
+      struct VO { @builtin(position) pos: vec4f, @location(0) @interpolate(flat) col: vec4f,
+                  @location(1) @interpolate(flat) c: vec2f, @location(2) @interpolate(flat) s: f32 };
+      const BONE = vec3f(0.9294, 0.9020, 0.8824);
+      const ACID = vec3f(0.7137, 1.0, 0.1804);
+      @vertex fn vs(@builtin(vertex_index) vi: u32, @location(0) at: vec2f) -> VO {
+        let dist = distance(at, u.center);
+        let rest = 0.12 + max(0.0, 1.0 - dist / u.maxR) * 0.2;
+        var col = BONE; var a = rest; var s = 1.5;
+        if (u.p < 1.0) {                                   // ignition: unlit grid, then an acid ring from the center
+          let R = u.maxR * u.p;
+          if (dist > R) { a = 0.11; }
+          else { let ring = max(0.0, 1.0 - abs(dist - R) / 22.0); if (ring > 0.05) { col = ACID; a = 0.3 + ring * 0.7; } }
+        } else {                                           // Sea, click rings and the pointer lens
+          var ring = 0.0;
+          for (var i = 0; i < 4; i++) { let q = u.pulses[i]; if (q.w > 0.0) { ring = max(ring, 1.0 - abs(distance(at, q.xy) - q.z) / 22.0); } }
+          if (ring > 0.05) { col = ACID; a = 0.3 + ring * 0.7; }
+          else {
+            a = rest + dot(sin(at.x * u.kx + at.y * u.ky + u.wp), u.wa);
+            if (u.lens.z > 0.01) {
+              let d = distance(at, u.lens.xy);
+              if (d < u.lens.w) { let f = 1.0 - d / u.lens.w; let ff = f * f * (3.0 - 2.0 * f) * u.lens.z; a += ff * 0.16; s += ff * 0.45; }
+            }
+            a = max(0.04, a);
+          }
+        }
+        var corner = array<vec2f, 6>(vec2f(-1.0, -1.0), vec2f(1.0, -1.0), vec2f(-1.0, 1.0), vec2f(-1.0, 1.0), vec2f(1.0, -1.0), vec2f(1.0, 1.0));
+        let c = at * u.dpr; let sz = s * u.dpr; let half = (ceil(sz) + 2.0) * 0.5;
+        let px = c + corner[vi] * half;
+        var o: VO;
+        o.pos = vec4f(px.x / u.res.x * 2.0 - 1.0, 1.0 - px.y / u.res.y * 2.0, 0.0, 1.0);
+        o.col = vec4f(col * a, a); o.c = c; o.s = sz;
+        return o;
+      }
+      @fragment fn fs(i: VO) -> @location(0) vec4f {
+        let lo = max(i.pos.xy - 0.5, i.c - i.s * 0.5);
+        let hi = min(i.pos.xy + 0.5, i.c + i.s * 0.5);
+        let ov = clamp(hi - lo, vec2f(0.0), vec2f(1.0));
+        let cov = ov.x * ov.y;
+        if (cov <= 0.0) { discard; }
+        return i.col * cov;
+      }`;
+
+    async function initGPU() {
+      if (!navigator.gpu) return;
+      let canvas;
+      try {
+        const adapter = await navigator.gpu.requestAdapter(); if (!adapter) return;
+        const device = await adapter.requestDevice();
+        device.pushErrorScope('validation');
+        canvas = document.createElement('canvas'); canvas.id = 'field-gpu'; canvas.setAttribute('aria-hidden', 'true');
+        const ctx = canvas.getContext('webgpu'), format = navigator.gpu.getPreferredCanvasFormat();
+        ctx.configure({ device, format, alphaMode: 'premultiplied' });
+        const module = device.createShaderModule({ code: FIELD_WGSL });
+        if ((await module.getCompilationInfo()).messages.some(m => m.type === 'error')) throw new Error('field shader');
+        const blend = { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' };
+        const pipeline = device.createRenderPipeline({
+          layout: 'auto',
+          vertex: { module, entryPoint: 'vs', buffers: [{ arrayStride: 8, stepMode: 'instance', attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x2' }] }] },
+          fragment: { module, entryPoint: 'fs', targets: [{ format, blend: { color: blend, alpha: blend } }] },
+          primitive: { topology: 'triangle-list' },
+        });
+        const ubuf = device.createBuffer({ size: 176, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+        const bind = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: ubuf } }] });
+        if (await device.popErrorScope()) throw new Error('field pipeline');
+
+        const U = new Float32Array(44);
+        let inst = null, count = 0, gw = 0, gh = 0, gd = 0;
+        const build = () => {
+          const xy = []; for (let gx = 8; gx < W; gx += 14) for (let gy = 8; gy < H; gy += 14) xy.push(gx, gy);
+          if (inst) inst.destroy();
+          inst = device.createBuffer({ size: xy.length * 4, usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST });
+          device.queue.writeBuffer(inst, 0, new Float32Array(xy)); count = xy.length / 2;
+          canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); gw = W; gh = H; gd = dpr;
+        };
+        const draw = (p, now) => {
+          if (gw !== W || gh !== H || gd !== dpr) build();
+          const [cx, cy] = origin(), t = (now - sea.t0) / 1000, amp = .14 * sea.ramp, TAU = 2 * Math.PI;
+          U.set([canvas.width, canvas.height, dpr, p, cx, cy, reach(cx, cy), 0], 0);
+          SEA.forEach((w, j) => { U[8 + j] = w.kx; U[12 + j] = w.ky; U[16 + j] = ((w.p - t * w.w) % TAU + TAU) % TAU; U[20 + j] = w.a * amp; });
+          U.set([lens.x, lens.y, lens.k > .01 ? lens.k : 0, LENS_R], 24);
+          for (let j = 0; j < 4; j++) { const q = pulses[j]; U.set(q ? [q.x, q.y, q.r, 1] : [0, 0, 0, 0], 28 + j * 4); }
+          device.queue.writeBuffer(ubuf, 0, U);
+          const enc = device.createCommandEncoder();
+          const pass = enc.beginRenderPass({ colorAttachments: [{ view: ctx.getCurrentTexture().createView(), loadOp: 'clear', storeOp: 'store', clearValue: { r: 0, g: 0, b: 0, a: 0 } }] });
+          pass.setPipeline(pipeline); pass.setBindGroup(0, bind); pass.setVertexBuffer(0, inst); pass.draw(6, count); pass.end();
+          device.queue.submit([enc.finish()]);
+        };
+        device.lost.then(() => { if (gpu) { gpu = null; canvas.remove(); field.style.display = ''; lastP >= 1 ? drawSea(performance.now()) : drawIgnition(lastP); } });
+
+        // swap in: draw the current frame on the GPU first, then hide the canvas renderer
+        field.after(canvas); build();
+        gpu = { draw };
+        lastP >= 1 ? drawSea(performance.now()) : drawIgnition(lastP);
+        field.style.display = 'none';
+      } catch (e) {
+        gpu = null; if (canvas) canvas.remove();                        // stay on the canvas renderer
       }
     }
+
     function seaLoop(now) {
       if (!sea.running) return;
       if (sea.ramp < 1) sea.ramp = Math.min(1, sea.ramp + 1 / 120);  // ramps in over about 2s
@@ -324,7 +471,135 @@
       });
     }
 
-    addEventListener('resize', () => { sizeField(); if (!sea.running) drawSea(performance.now()); glitchResize(); });
+    /* ================= SCOPE =================
+       An oscilloscope beam drawn over the field in acid. The beam is sampled every 2ms and each sample fades
+       like phosphor, so the trail decays behind the head. Brightness follows the beam's speed, so corners and
+       turning points glow a little where the beam slows down, the way a real CRT does.
+       About every 30 seconds the beam plays one phase behind the lockup, then collapses to a dot that blinks out:
+       - Lissajous: the next frequency ratio in the sequence grows out of a dot and slowly turns.
+       - Vector mark (every fourth phase): the beam draws the AstraLabs mark in XY mode, once slowly, then keeps
+         refreshing it at speed. The beam is a damped spring chasing the path, so it overshoots and rings at corners. */
+    const scopeEl = $('#scope'), sx = scopeEl.getContext('2d');
+    const sizeScope = () => { scopeEl.width = Math.round(W * dpr); scopeEl.height = Math.round(H * dpr); };
+    const scope = { mode: null, samples: [], tau: 500, gain: 1, last: 0, raf: 0, acc: 0, sim: null };
+
+    function drawBeam(now) {
+      sx.setTransform(dpr, 0, 0, dpr, 0, 0); sx.clearRect(0, 0, W, H);
+      const S = scope.samples, cutoff = now - scope.tau * 4;
+      let start = 0; while (start < S.length && (!S[start] || S[start].t < cutoff)) start++;
+      if (start > 512) { S.splice(0, start); start = 0; }
+      const N = 6, paths = Array.from({ length: N }, () => new Path2D());
+      for (let i = Math.max(1, start); i < S.length; i++) {
+        const p = S[i - 1], q = S[i]; if (!p || !q || p.t < cutoff) continue;
+        const seg = Math.hypot(q.x - p.x, q.y - p.y);
+        const a = Math.exp(-(now - q.t) / scope.tau) * Math.min(1, Math.sqrt(2.4 / Math.max(seg, .35))) * scope.gain;
+        if (a < .03) continue;
+        const b = paths[Math.min(N - 1, Math.floor(a * N))]; b.moveTo(p.x, p.y); b.lineTo(q.x, q.y);
+      }
+      sx.lineCap = 'round'; sx.lineJoin = 'round';
+      paths.forEach((path, i) => {
+        const a = (i + .5) / N;
+        sx.strokeStyle = `rgba(182,255,46,${(a * .14).toFixed(3)})`; sx.lineWidth = 4; sx.stroke(path);  // faint halo
+        sx.strokeStyle = `rgba(182,255,46,${a.toFixed(3)})`; sx.lineWidth = 1.25; sx.stroke(path);        // beam core
+      });
+      for (let i = S.length - 1; i >= start; i--) if (S[i]) return S[i].t > cutoff;  // still glowing?
+      return false;
+    }
+
+    function scopeLoop(now) {
+      scope.acc += Math.min(50, now - scope.last); scope.last = now;
+      const steps = Math.floor(scope.acc); scope.acc -= steps;  // whole 1ms sim steps, so the beam clock tracks real time
+      const live = scope.sim ? scope.sim(steps, now) : false;  // the sim pushes samples; false once the beam is off
+      if (!live) scope.sim = null;
+      const visible = drawBeam(now);
+      if (live || visible) { scope.raf = requestAnimationFrame(scopeLoop); return; }
+      sx.clearRect(0, 0, scopeEl.width, scopeEl.height); scope.samples = []; scope.mode = null; scope.raf = 0;
+    }
+    function runScope(mode, sim, tau, gain) {
+      scope.mode = mode; scope.sim = sim; scope.tau = tau; scope.gain = gain; scope.samples = [];
+      scope.last = performance.now(); scope.acc = 0; if (!scope.raf) scope.raf = requestAnimationFrame(scopeLoop);
+    }
+
+    // Shared phase envelope: the figure plays, then shrinks to a dot at the center that blinks twice and goes out.
+    const COLLAPSE = 260, BLINKS = [[300, 360], [420, 520]], END = 700;
+    const blanked = t => BLINKS.some(([a, b]) => t > a && t < b);
+    const scopeBox = () => { const A = Math.min(W, H) * .3; return { cx: W / 2, cy: H / 2, A }; };
+
+    /* ---------- Lissajous phase ---------- */
+    const RATIOS = [[1, 2], [2, 3], [3, 4], [3, 5], [1, 1], [4, 5]];
+    let ratioIx = 0;
+    function lissajous() {
+      const [fa, fb] = RATIOS[ratioIx++ % RATIOS.length];
+      const PLAY = 7000;
+      let phi = 0, delta = Math.PI / 4, amp = 0, t = 0, clock = performance.now();
+      runScope('liss', steps => {
+        const { cx, cy, A } = scopeBox();
+        for (let ms = 0; ms < steps; ms++) {
+          t += 1; clock += 1;
+          const out = t - PLAY;                                         // ms since the collapse began
+          if (out > END) return false;
+          amp = out < 0 ? Math.min(1, amp + 1 / 1400) : Math.max(0, amp - 1 / COLLAPSE);  // warm up, then collapse
+          phi += 2 * Math.PI / 520; delta += .00025;
+          if (ms % 2) continue;
+          if (out > 0 && blanked(out)) { scope.samples.push(null); continue; }
+          scope.samples.push({ x: cx + A * amp * Math.sin(fa * phi + delta), y: cy + A * .82 * amp * Math.sin(fb * phi), t: clock });
+        }
+        return true;
+      }, 340, .55);
+    }
+
+    /* ---------- vector mark phase ---------- */
+    const MARK = [
+      [[0, 519.62], [300, 0], [542.84, 420.62], [466.63, 420.62], [300, 132], [76.21, 519.62]],
+      [[114.32, 519.62], [300, 198], [338.11, 264], [228.63, 453.62], [561.89, 453.62], [600, 519.62]],
+    ];
+    function vectorMark() {
+      // the mark in units around its center, sized to the same box as the Lissajous figures
+      const subs = MARK.map(pts => {
+        const P = pts.concat([pts[0]]).map(([x, y]) => [(x - 300) / 300, (y - 259.81) / 300]), cum = [0];  // centered on its bounding box
+        for (let i = 1; i < P.length; i++) cum.push(cum[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1]));
+        return { P, cum, len: cum[cum.length - 1] };
+      });
+      const lapLen = subs.reduce((n, s) => n + s.len, 0);
+      const pointAt = (sub, d) => { const { P, cum } = sub; let i = 1; while (i < cum.length - 1 && cum[i] < d) i++; const f = (d - cum[i - 1]) / (cum[i] - cum[i - 1] || 1); return [P[i - 1][0] + (P[i][0] - P[i - 1][0]) * f, P[i - 1][1] + (P[i][1] - P[i - 1][1]) * f]; };
+      const SLOW = 2400, FAST = 1100, PLAY = 6500;                      // one slow draw, then refreshes until PLAY
+      const OM = 2 * Math.PI * 55, ZETA = .35;                          // beam spring: 55Hz, underdamped
+      const place = ([x, y], amp) => { const { cx, cy, A } = scopeBox(), k = A * .95 * amp; return [cx + x * k, cy + y * k]; };
+      let d = 0, lap = 0, sub = 0, amp = 1, t = 0, clock = performance.now();
+      let [bx, by] = place(subs[0].P[0], 1), vx = 0, vy = 0;
+      runScope('mark', steps => {
+        for (let ms = 0; ms < steps; ms++) {
+          t += 1; clock += 1;
+          const out = t - PLAY;
+          if (out > END) return false;
+          if (out > 0) amp = Math.max(0, amp - 1 / COLLAPSE);
+          d += lapLen / (lap === 0 ? SLOW : FAST);
+          if (d >= lapLen) { d -= lapLen; lap++; }
+          let local = d, si = 0; while (si < subs.length - 1 && local > subs[si].len) { local -= subs[si].len; si++; }
+          const [tx, ty] = place(pointAt(subs[si], Math.min(local, subs[si].len)), amp);
+          if (si !== sub) { sub = si; bx = tx; by = ty; vx = vy = 0; scope.samples.push(null); }  // blanked jump between the two shapes
+          const ax = OM * OM * (tx - bx) - 2 * ZETA * OM * vx, ay = OM * OM * (ty - by) - 2 * ZETA * OM * vy;
+          vx += ax / 1000; vy += ay / 1000; bx += vx / 1000; by += vy / 1000;
+          if (ms % 2) continue;
+          if (out > 0 && blanked(out)) { scope.samples.push(null); continue; }
+          scope.samples.push({ x: bx, y: by, t: clock });
+        }
+        return true;
+      }, 650, .6);
+    }
+
+    /* ---------- scheduling ---------- */
+    let phaseN = 0;
+    function startScope() {
+      if (reduce) return;
+      const next = ms => setTimeout(() => {
+        if (!scope.mode && !document.hidden) { (phaseN % 4 === 2 ? vectorMark : lissajous)(); phaseN++; }
+        next(R2(26000, 34000));
+      }, ms);
+      next(8000);  // first phase shortly after the intro lands
+    }
+
+    addEventListener('resize', () => { sizeField(); grid = null; sizeScope(); scope.samples = []; if (!sea.running) drawSea(performance.now()); glitchResize(); });
 
     /* ================= LOCKUP BOOT =================
        The mark traces its outline in bone, then its fill flickers on like a tube. The wordmark strobes on
@@ -512,11 +787,11 @@
     }
 
     /* ================= START ================= */
-    sizeField();
+    sizeField(); sizeScope(); initGPU();
     if (reduce) { drawSea(performance.now()); loadGlitch(); return; }
     logo.classList.add('booting'); document.body.classList.add('booting-hud');
     drawIgnition(.0001);
-    boot().then(() => { loadGlitch(); return corners(); }).then(scheduleIdle).catch(() => { document.body.classList.remove('booting-hud'); $('#clock').style.visibility = $('#byline').style.visibility = ''; settleBoot(); logo.classList.remove('booting'); startSea(); });
+    boot().then(() => { loadGlitch(); return corners(); }).then(() => { scheduleIdle(); startScope(); }).catch(() => { document.body.classList.remove('booting-hud'); $('#clock').style.visibility = $('#byline').style.visibility = ''; settleBoot(); logo.classList.remove('booting'); startSea(); });
   })();
   </script>
 </body>
